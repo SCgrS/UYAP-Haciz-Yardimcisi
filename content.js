@@ -608,8 +608,11 @@
   //   fail(ipucu)          Beklenen bir öğe gelmedi. Popup'ta "Bir şeyler ters
   //                        gitti" yazar, altında NEREDE durulduğunu söyleyen
   //                        kısa ipucu görünür.
-  //   blocked(neden, ...)  UYAP bir kutuyla engelledi. Popup'ta engelin adı
-  //                        başlık olur, altında UYAP'ın kendi cümlesi görünür.
+  //   blocked(neden, ...)  UYAP bir kutuyla engelledi. Bölüm satırına UYAP'ın
+  //                        KENDİ cümlesi yazılır ("Uyarı: ..."). Buradaki
+  //                        "neden", cümleyi tanıyıp beklemeyi kesmeye yarar;
+  //                        satırda gösterilmez, yoksa aynı şey iki kez yazılmış
+  //                        olurdu.
   //
   // Hiçbiri dosya/taraf bilgisi içermez.
   class StepError extends Error {
@@ -720,7 +723,11 @@
       // dokunulmaz ve kararı kullanıcı verir.
       if (outcome === 'fee') {
         const fee = findFeeDialog();
-        if (!allowPaid) blocked('Bu sorgu ücretli', fee.message);
+        // Ücret kutusunun cümlesi tutarı içerir; sonuna neden geçildiği
+        // eklenir, çünkü bunu UYAP değil eklenti karar veriyor.
+        if (!allowPaid) {
+          blocked('Bu sorgu ücretli', `${fee.message} (ücretli sorgu onayı kapalı)`);
+        }
 
         paidApproved = true;
         fee.confirm.click();
@@ -1292,8 +1299,11 @@
         const fee = findFeeDialog();
 
         // İzin verilmediyse kutuya hiç dokunulmaz: kararı kullanıcı verir.
-        // Tutarı da içerdiği için UYAP'ın kendi cümlesi gösterilir.
-        if (!allowPaid) blocked('Bu sorgu ücretli, onay tiki kapalı', fee.message);
+        // Tutarı da içerdiği için UYAP'ın kendi cümlesi gösterilir; sonuna
+        // neden geçildiği eklenir, çünkü buna UYAP değil eklenti karar veriyor.
+        if (!allowPaid) {
+          blocked('Bu sorgu ücretli', `${fee.message} (ücretli sorgu onayı kapalı)`);
+        }
 
         paidApproved = true;
         fee.confirm.click();
@@ -1417,9 +1427,12 @@
   // Ücret onaylanmışsa nota eklenir: hangi bölümün para harcadığı görünsün.
   const withCost = note => (paidApproved ? `${note} (ücretli sorgu onaylandı)` : note);
 
+  // Bölüm satırına yazılacak cümle. UYAP kendi kutusuyla engellediyse YALNIZ o
+  // kutunun cümlesi gösterilir; onu bir de kendi sözlerimizle özetlemek satırı
+  // uzatıyor ve aynı şeyi iki kez söylüyordu.
   function stopNote(error) {
     if (!(error instanceof StepError)) return 'Bir şeyler ters gitti';
-    if (error.headline && error.detail) return `${error.headline}: ${error.detail}`;
+    if (error.headline && error.detail) return `Uyarı: ${error.detail}`;
     return error.headline || error.detail || 'Bir şeyler ters gitti';
   }
 

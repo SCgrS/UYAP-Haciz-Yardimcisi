@@ -1,4 +1,4 @@
-UYAP Haciz Yardımcısı v2.9.1
+UYAP Haciz Yardımcısı v2.9.2
 
 NE YAPAR
 Tek düğmesi vardır: "Toplu Haczi Hazırla". Seçili borçlu için tikli bıraktığınız
@@ -58,11 +58,9 @@ CANLI BÖLÜM LİSTESİ VE SONUÇ
 bir satırlık liste durur ve her satır ne olduğunu bir cümleyle söyler:
 
   EGM            3 kayıt haciz talebine eklendi
-  İcra dosyası   Bu sorgu 60 dakikada bir yapılabiliyor: Bu işlem 60 dakikada
-                 1 defa yapılabilmektedir.
+  İcra dosyası   Uyarı: Bu işlem 60 dakikada 1 defa yapılabilmektedir.
   TAKBİS         11 kayıt haciz talebine eklendi (ücretli sorgu onaylandı)
-  Banka          Bu sorgu kurum borçlularda yapılamıyor: Kurumlar için bu
-                 sorgu yapılamamaktadır.
+  Banka          Uyarı: Kurumlar için bu sorgu yapılamamaktadır.
 
 Talep evrakı bu listede yer ALMAZ: o bir bölüm değil, işin sonucudur. Ne
 olduğu her hâlükârda durum kutucuğunun içinde, başlığın hemen altında yazar.
@@ -88,9 +86,11 @@ penceresinin kapanıp kapanmadığına, yani ondan ayrılıp ayrılmadığınız
 bakılır.
 
 Yeşil satır bitti, turuncu satır takıldı, mavi satır çalışıyor demektir.
-Turuncu satırın altında nedeni yazar: engelin adı ve varsa UYAP'ın kendi
-cümlesi. Bir bölüm takılırsa akış durmaz, sıradaki bölüme geçer; ekranda kalan
-kutu yalnız "vazgeç" anlamına gelen düğmeyle kapatılır.
+Turuncu satırın altında nedeni yazar. UYAP bir kutuyla engellediyse orada
+YALNIZ o kutunun kendi cümlesi durur, başında "Uyarı:" ile; eklenti aynı şeyi
+bir de kendi sözleriyle özetlemez. Bir bölüm takılırsa akış durmaz, sıradaki
+bölüme geçer; ekranda kalan kutu yalnız "vazgeç" anlamına gelen düğmeyle
+kapatılır.
 
 ESKİ SÜRÜM UYARISI
 Chrome, eklentinin popup dosyalarını her açılışta diskten okur; service worker
@@ -106,8 +106,9 @@ sayılı olduğu için yanlış çalışmaktansa hiç çalışmamak yeğlenir.
 
 ÜCRETLİ SORGU
 Ücretsiz sorgu hakkı bittiğinde UYAP "... ücret alınacaktır" diye İptal/Tamam
-düğmeli bir kutu açar. Eklenti bu kutuya kendiliğinden DOKUNMAZ: o bölüm
-"Bu sorgu ücretli, onay tiki kapalı" notuyla geçilir. Onaylamasını istiyorsanız
+düğmeli bir kutu açar. Eklenti bu kutuya kendiliğinden DOKUNMAZ: kutu İptal ile
+kapatılır ve o bölüm "(ücretli sorgu onayı kapalı)" notuyla geçilir.
+Onaylamasını istiyorsanız
 "Ücretli sorguyu onayla" tikini işaretleyin; tik varsayılan olarak kapalıdır.
 Açıkken çalışan bölümlerin (banka dâhil) ücret kutusu onaylanır ve o bölümün
 satırına "(ücretli sorgu onaylandı)" yazılır.
@@ -117,25 +118,25 @@ Hiçbir tür tikli değilken düğmeye basılırsa hiçbir şey yapılmaz; durum
 
 SORGU NEDEN YAPILAMADI
 UYAP bir sorguyu engellediğinde bunu neredeyse her zaman bir kutuyla bildirir.
-Eklenti bu kutunun gövde metnini okur, kutuyu kapatır ve nedeni popup'ta
-gösterir: üstte kısa başlık, altında UYAP'ın kendi cümlesi. En sık görülenler:
+Eklenti bu kutunun gövde metnini okur, kutuyu kapatır ve o bölümün satırına
+"Uyarı: <UYAP'ın cümlesi>" diye yazar. Cümle olduğu gibi aktarılır; ne
+kısaltılır ne de yeniden anlatılır:
 
-  "Bu işlem 60 dakikada 1 defa yapılabilmektedir."
-      -> Bu sorgu 60 dakikada bir yapılabiliyor
-  "Bu işlem için yeterli bakiyeniz bulunmamaktadır..."
-      -> Sorgu bakiyeniz yetersiz
-  "... sorgu limitiniz dolmuştur."
-      -> Sorgu limitiniz dolmuş
-  "... yetkiniz bulunmamaktadır."
-      -> Bu sorgu için yetkiniz yok
-  "Kurumlar için bu sorgu yapılamamaktadır."
-      -> Bu sorgu kurum borçlularda yapılamıyor
-  "... ₺5,00 ücret alınacaktır. Bu işlemi onaylıyor musunuz?"
-      -> Bu sorgu ücretli, onay tiki kapalı
+  Uyarı: Bu işlem 60 dakikada 1 defa yapılabilmektedir.
+  Uyarı: Bu işlem için yeterli bakiyeniz bulunmamaktadır. Lütfen Sorgu
+         bakiyesi yükledikten sonra tekrar deneyiniz.
+  Uyarı: Kurumlar için bu sorgu yapılamamaktadır.
 
-Liste kapalı değildir: tanınmayan bir kutu çıkarsa başlık "Sorgu yapılamadı"
-olur ve altında UYAP'ın cümlesi olduğu gibi gösterilir. Engel anlaşıldığı anda
-o bölüm bırakılır; gelmeyecek bir tabloyu beklemez.
+Eklenti bu cümlelerden bazılarını (60 dakika, bakiye, limit, yetki, kurum
+borçlusu) TANIR; tanıdığında beklemeyi keser ve sıradaki bölüme geçer.
+Tanımadığı bir kutu çıkarsa da cümle aynı biçimde gösterilir, yalnız
+beklemeye biraz daha devam edilir.
+
+Ücret kutusunun cümlesi tutarı içerir ve sonuna neden geçildiği eklenir,
+çünkü buna UYAP değil eklenti karar verir:
+
+  Uyarı: Bu işlem için ₺5,00 ücret alınacaktır. Bu işlemi onaylıyor
+         musunuz? (ücretli sorgu onayı kapalı)
 
 Bunun dışında bir adım beklenen sonucu vermezse popup'ta "Bir şeyler ters
 gitti" yazar, altında nerede durulduğunu söyleyen kısa bir ipucu görünür.
