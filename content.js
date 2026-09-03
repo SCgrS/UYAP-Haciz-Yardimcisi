@@ -1492,15 +1492,16 @@
   // oluşturulur. Kurum borçlularda banka sorgusu hiç yapılamıyor ("Kurumlar
   // için bu sorgu yapılamamaktadır"); evrak banka adımına bağlı kaldığında,
   // EGM ve TAKBİS'ten eklenen talepler evraksız kalıyordu.
-  // Evrak gerçekten oluştuysa true döner; kayıt yoksa oluşturulacak bir şey
-  // olmadığından akış hatasız ama evraksız biter.
+  //
+  // Bu adım bölüm listesine satır DÜŞMEZ: evrak, bölümlerden biri değil işin
+  // sonucudur ve durum kutucuğunun altında, başlığın hemen altında yazılır.
+  // Döndürdüğü not oraya gider.
   async function runBulkDocument(prepared) {
-    stage('evrak', 'Talep evrakı', 'running', 'Oluşturuluyor');
-
     if (prepared === 0) {
-      stage('evrak', 'Talep evrakı', 'done',
-        'Talebe eklenen kayıt olmadığı için evrak oluşturulmadı');
-      return false;
+      return {
+        ok: true,
+        note: 'Talebe eklenen kayıt olmadığı için evrak oluşturulmadı'
+      };
     }
 
     try {
@@ -1516,13 +1517,10 @@
         fail('Talep evrakı için beklenmeyen onay kutusu çıktı');
       }
 
-      stage('evrak', 'Talep evrakı', 'done',
-        `${prepared} kayıt için talep evrakı oluşturuldu`);
-      return true;
+      return { ok: true, note: `${prepared} kayıt için talep evrakı oluşturuldu` };
     } catch (error) {
-      stage('evrak', 'Talep evrakı', 'error', stopNote(error));
       await clearOverlays();
-      return false;
+      return { ok: false, note: `Talep evrakı oluşturulamadı: ${stopNote(error)}` };
     }
   }
 
@@ -1596,29 +1594,21 @@
       }
     }
 
-    const evrakCreated = await runBulkDocument(prepared);
-    if (prepared > 0 && !evrakCreated) failed += 1;
+    const evrak = await runBulkDocument(prepared);
+    if (!evrak.ok) failed += 1;
+
+    // Başlığın altındaki satır: evrakın ne olduğu ve hangi bölümden kaçar
+    // kayıt geldiği. Bir bölüm takıldığında da aynı satır yazılır; nedeni
+    // zaten o bölümün kendi satırında durur.
+    const detail = counts.length > 0
+      ? `${evrak.note} (${counts.join(', ')})`
+      : evrak.note;
 
     // Bir bölüm bile eksik kaldıysa durum yeşile dönmez: hazırlanan talep
     // eksiktir ve kullanıcının bunu fark etmesi gerekir.
-    if (failed > 0) {
-      blocked(
-        `${failed} bölüm tamamlanamadı`,
-        'Hangi bölümde ne olduğu aşağıdaki listede yazıyor'
-      );
-    }
+    if (failed > 0) blocked(`${failed} bölüm tamamlanamadı`, detail);
 
-    // Bitiş satırı sonucu tek cümlede toplar: kaç kayıt eklendi, evrak
-    // oluştu mu, hangi bölümden kaçar kayıt geldi.
-    const breakdown = counts.join(', ');
-
-    return {
-      label: 'Tamamlandı',
-      detail: prepared === 0
-        ? `Hiçbir bölümden kayıt çıkmadı, talep evrakı oluşturulmadı. (${breakdown})`
-        : `Toplam ${prepared} kayıt haciz talebine eklendi, talep evrakı ` +
-          `oluşturuldu. (${breakdown})`
-    };
+    return { label: 'Tamamlandı', detail };
   }
 
   async function run(options) {

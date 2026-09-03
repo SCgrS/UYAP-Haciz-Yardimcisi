@@ -31,7 +31,9 @@
     <div class="status__bar"><i id="status-fill"></i></div>
   </section>
 
-  <!-- Bölüm listesi: hangi haciz türü ne yaptı, nerede takıldı. -->
+  <!-- Bölüm listesi: hangi haciz türü ne yaptı, nerede takıldı. Talep evrakı
+       burada yer almaz; o bir bölüm değil sonuç olduğu için yukarıdaki durum
+       kutucuğunun altına yazılır. -->
   <ul id="stages" class="stages" aria-live="polite" hidden></ul>
 
   <main>
@@ -47,19 +49,14 @@
             <circle cx="12" cy="7.5" r="1.2" fill="currentColor"/>
           </svg>
           <span class="info__panel" role="tooltip">
-            <b>Ne yapar</b>
+            <b>Ne yapar?</b>
             <i>Seçili borçlu için tikli haciz türlerini sırayla sorgular, çıkan
             kayıtların hepsini haciz talebine ekler ve en sonda tek talep evrakı
-            oluşturur. Talebi göndermez.</i>
+            oluşturur.</i>
 
             <b>Kullanım</b>
             <i>Kesinleşmiş takip dosyasını açın, Taraf Bilgileri&#8217;nden bir
             borçlu seçin, sonra düğmeye basın.</i>
-
-            <b>Sıra</b>
-            <i>EGM &#8594; İcra dosyası &#8594; TAKBİS &#8594; Banka. Banka hangi
-            sırayla tiklenirse tiklensin en sonda çalışır: talep formunu o açar.
-            Tiki kaldırılan tür hiç sorgulanmaz.</i>
 
             <b>İşlem sürerken sayfaya dokunmayın</b>
             <i>Sorgulama ve ekleme sürerken sayfada bir yere tıklarsanız
@@ -69,13 +66,6 @@
             <i>Ücretsiz hak bittiğinde UYAP ücret onayı sorar. Eklenti bu kutuya
             yalnız &#8220;Ücretli sorguyu onayla&#8221; tikliyken basar; tik
             varsayılan olarak kapalıdır.</i>
-
-            <b>Bölüm listesi</b>
-            <i>Her türün ne yaptığı (&#8220;7 kayıt eklendi&#8221;, &#8220;Araç
-            kaydı yok&#8221;, &#8220;60 dakikada bir yapılabiliyor&#8221;) durum
-            çubuğunun altında satır satır görünür. Bir bölüm takılırsa akış
-            durmaz, sıradakine geçer. Liste, başka bir dosya açtığınızda
-            kendiliğinden temizlenir.</i>
           </span>
         </span>
       </div>

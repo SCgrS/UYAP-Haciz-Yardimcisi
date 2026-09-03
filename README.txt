@@ -1,4 +1,4 @@
-UYAP Haciz Yardımcısı v2.9.0
+UYAP Haciz Yardımcısı v2.9.1
 
 NE YAPAR
 Tek düğmesi vardır: "Toplu Haczi Hazırla". Seçili borçlu için tikli bıraktığınız
@@ -10,7 +10,8 @@ varsayılan olarak açıktır; tiki kaldırılan tür hiç sorgulanmaz, bölüm 
 satırı da düşmez. Altında bir tik daha vardır: "Ücretli sorguyu onayla".
 
 Bilgilendirme metninin tamamı, bölüm başlığının ("TOPLU HACİZ") yanındaki bilgi
-işaretinin altındadır; işaretin üzerine gelince açılır.
+işaretinin altındadır; işaretin üzerine gelince açılır. Dört başlık vardır:
+ne yapar, kullanım, işlem sürerken sayfaya dokunmayın, ücretli sorgu.
 
 KULLANIM
 Kesinleşmiş bir takip dosyasını açın, Taraf Bilgileri sekmesinden bir borçlu
@@ -38,7 +39,7 @@ Evrak adımı banka bölümünün İÇİNDE değil, ondan SONRA gelir. Kurum bor
 banka sorgusu UYAP tarafından hiç yapılamıyor ("Kurumlar için bu sorgu
 yapılamamaktadır"); evrak banka adımına bağlı kalsaydı EGM ve TAKBİS'ten
 eklenen talepler evraksız kalırdı. Talebe hiç kayıt girmediyse evrak
-oluşturulmaz ve satırında bunu yazar.
+oluşturulmaz ve durum kutucuğu bunu yazar.
 
 Ödeme türü (Vakıfbank / e-barobirlik) SEÇİLMEZ, "Kendi Hesaplarım ile Ödeme"
 düğmesine BASILMAZ, ödeme ekranı hiç açılmaz ve evrak türü GİRİLMEZ; "Talep
@@ -62,15 +63,22 @@ bir satırlık liste durur ve her satır ne olduğunu bir cümleyle söyler:
   TAKBİS         11 kayıt haciz talebine eklendi (ücretli sorgu onaylandı)
   Banka          Bu sorgu kurum borçlularda yapılamıyor: Kurumlar için bu
                  sorgu yapılamamaktadır.
-  Talep evrakı   14 kayıt için talep evrakı oluşturuldu
 
-İş bittiğinde durum kutucuğu yeşile döner, üstünde "SONUÇ" etiketi belirir ve
-içinde özet durur:
+Talep evrakı bu listede yer ALMAZ: o bir bölüm değil, işin sonucudur. Ne
+olduğu her hâlükârda durum kutucuğunun içinde, başlığın hemen altında yazar.
+İş sorunsuz bittiyse kutu yeşile döner ve üstünde "SONUÇ" etiketi belirir:
 
   SONUÇ
   Tamamlandı
-  Toplam 14 kayıt haciz talebine eklendi, talep evrakı oluşturuldu.
+  14 kayıt için talep evrakı oluşturuldu
   (EGM 3, İcra dosyası 0, TAKBİS 11, Banka 0)
+
+Bir bölüm takıldıysa kutu turuncuya döner; başlık kaç bölümün eksik kaldığını,
+altındaki satır yine evrakın ne olduğunu söyler. Hangi bölümde ne olduğu
+aşağıdaki listede zaten yazdığı için oraya yönlendiren bir cümle kullanılmaz:
+
+  1 bölüm tamamlanamadı
+  6 kayıt için talep evrakı oluşturuldu (EGM 2, İcra dosyası 2, TAKBİS 2)
 
 Liste, çalışma bittikten sonra da ekranda kalır ki sonucu okuyabilesiniz.
 Dosya penceresini kapattığınızda ya da başka bir dosya açtığınızda
