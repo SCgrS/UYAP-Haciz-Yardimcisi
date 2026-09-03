@@ -1,4 +1,4 @@
-UYAP Haciz Yardımcısı v2.9.2
+UYAP Haciz Yardımcısı v2.9.3
 
 NE YAPAR
 Tek düğmesi vardır: "Toplu Haczi Hazırla". Seçili borçlu için tikli bıraktığınız
@@ -47,11 +47,29 @@ Evrakı Oluştur" düğmesine basılmasıyla iş biter.
 
 SORGULAR SEKMESİ
 Sorgu kartları dosya penceresindeki "Sorgular" sekmesinin altındadır. Her
-bölümün başında bu sekmenin açık olduğuna bakılır; açık değilse sekmeye
-basılır. Böylece bir önceki bölümün bıraktığı Talep Gönder ekranında ya da
-elle geçilmiş başka bir sekmede kalınmış olsa bile sorgu kartı bulunur.
-Sekme zaten seçiliyse tıklanmaz: seçili sekmeye yeniden basmak o an açık olan
-sorgu şeridini kapatabilir.
+bölümün başında o bölümün KARTININ ekranda olduğuna bakılır; yoksa sekmeye
+basılır ve kart çizilene kadar beklenir. Böylece bir önceki çalıştırmanın
+bıraktığı Talep Gönder ekranında ya da elle geçilmiş başka bir sekmede
+kalınmış olsa bile kart bulunur. Sekme zaten seçiliyse tıklanmaz: seçili
+sekmeye yeniden basmak o an açık olan sorgu şeridini kapatabilir.
+
+Beklemek şart: sekme geldiği anda kartların hepsi birden çizilmiyor, aranan
+kart birkaç yüz milisaniye sonra oluşabiliyor. Ayrıca sayfa meşgulken bir
+tıklama sessizce yutulabiliyor. İkisi de aynı belirtiyi veriyordu: ekran
+açılıyor ama karta hiç tıklanmadan "Sorgu bölümü açılmadı" / "Banka bölümü
+açılmadı" deniyordu; bir tür çalışırken diğeri çalışmıyordu. Bu yüzden hem
+sekme hem kart, sonucun ekrana gelmesi beklenerek üç kez denenir. Kart hiç
+çizilmezse satırda bunu ayrıca söyleyen bir not durur ("EGM-TNB kartı
+ekranda bulunamadı").
+
+Bu sayede popup'tan çıkmadan, Talep Gönder ekranında kalarak arka arkaya
+çalıştırmak da güvenli: bir tikle EGM, sonra bir tikle icra dosyası, sonra
+TAKBİS. Her çalıştırma kendi talep evrakını oluşturup Talep Gönder ekranında
+biter, bir sonraki çalıştırma oradan devam eder.
+
+Aynı türü arka arkaya iki kez çalıştırmayın: sonuç tablosu ekranda kaldığı
+için ikinci çalıştırma sorguyu tekrarlamaz (sorgu hakkı harcamamak için) ve
+aynı kayıtları talebe bir kez daha ekler.
 
 CANLI BÖLÜM LİSTESİ VE SONUÇ
 Çalışırken durum çubuğu o an ne yapıldığını yazar. Altında, seçili her tür için

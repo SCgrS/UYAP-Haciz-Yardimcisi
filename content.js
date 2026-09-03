@@ -542,38 +542,60 @@
     tab.getAttribute('aria-selected') === 'true' ||
     tab.classList.contains('dx-tab-selected');
 
-  const queryCardsVisible = () => inRoot('button.query-button').length > 0;
+  // Beklenen, "herhangi bir kart" değil TAM O KART'tır. Sekme açılır açılmaz
+  // kartların hepsi birden çizilmiyor: ekran geldiği hâlde aranan kart birkaç
+  // yüz milisaniye sonra oluşabiliyor. Eskiden bu ara anda kart aranıp
+  // bulunamıyor ve akış hiç sorgu yapmadan "bölüm açılmadı" ile duruyordu.
+  //
+  // Ayrıca sayfa meşgulken bir tıklama sessizce yutulabiliyor. Bu yüzden hem
+  // sekme hem kart, sonucun ekrana gelmesi beklenerek birkaç kez denenir.
+  async function ensureQueryScreen(cardTitle) {
+    const ready = () => !!findQueryCard(cardTitle);
 
-  async function ensureQueryScreen() {
-    const tab = findTab(SORGULAR_TAB);
+    if (ready()) return;
 
-    // Sekme bu ekranda başka bir adla duruyorsa kartların görünür olması
-    // yeterli kanıttır; akış eskisi gibi sürer.
-    if (!tab) {
-      if (queryCardsVisible()) return;
-      fail('Sorgular sekmesi bulunamadı');
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const tab = findTab(SORGULAR_TAB);
+
+      // Sekme bu ekranda başka bir adla duruyorsa kartın görünür olması
+      // yeterli kanıttır; akış eskisi gibi sürer.
+      if (!tab) {
+        if (await waitFor(() => findTab(SORGULAR_TAB) || ready(), 2500)) continue;
+        fail('Sorgular sekmesi bulunamadı');
+      }
+
+      // Seçili sekmeye yeniden tıklamak o an açık olan sorgu şeridini
+      // kapatabilir; seçiliyse yalnız kartın çizilmesi beklenir.
+      if (!tabSelected(tab)) tab.click();
+
+      if (await waitFor(ready, 4000)) return;
     }
 
-    if (tabSelected(tab) && queryCardsVisible()) return;
-
-    tab.click();
-
-    if (!await waitFor(queryCardsVisible, 10000)) fail('Sorgular ekranı açılmadı');
+    fail('Sorgular ekranı açılmadı');
   }
 
   // Kart açık değilse açar. Açıksa hiç tıklamaz: açık bir kartın kendisine
-  // ikinci kez tıklamak şeridi kapatır.
+  // ikinci kez tıklamak şeridi kapatır. Her turun başında şerit yeniden
+  // yoklanır ki geç açılan bir şerit ikinci tıklamayla kapatılmasın.
   async function openQueryCard(cardTitle, panelText, missingLabel) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (findQueryPanel(panelText)) return;
+
+      const card = await waitFor(() => findQueryCard(cardTitle), 4000);
+      if (!card) continue;
+
+      card.click();
+
+      if (await waitFor(() => findQueryPanel(panelText), 5000)) return;
+    }
+
     if (findQueryPanel(panelText)) return;
 
-    const card = findQueryCard(cardTitle);
-    if (!card) fail(missingLabel);
+    // Kart hiç çizilmediyse bunu ayrıca söyle: "şerit açılmadı" ile aynı şey
+    // değil ve bir sonraki sefer nereye bakılacağını belli eder.
+    if (!findQueryCard(cardTitle)) fail(`${cardTitle} kartı ekranda bulunamadı`);
 
-    card.click();
-
-    if (!await waitFor(() => findQueryPanel(panelText), 10000)) {
-      fail(missingLabel);
-    }
+    fail(missingLabel);
   }
 
   // =========================================================================
@@ -694,7 +716,7 @@
     step('Banka sorgusu açılıyor');
 
     // Sorgu kartları yalnız "Sorgular" sekmesinde durur.
-    await ensureQueryScreen();
+    await ensureQueryScreen(BANKA_CARD);
 
     if (findSourceGrid()) {
       // Kullanıcı sorguyu zaten yaptıysa 60 dakikalık limite takılmamak için
@@ -1242,7 +1264,7 @@
     step(`${flow.label} sorgusu açılıyor`);
 
     // Sorgu kartları yalnız "Sorgular" sekmesinde durur.
-    await ensureQueryScreen();
+    await ensureQueryScreen(flow.card);
 
     // Panel bu akış için zaten açıksa ekrandaki sonuç da bu akışa aittir.
     if (findQueryPanel(flow.panel)) return;
