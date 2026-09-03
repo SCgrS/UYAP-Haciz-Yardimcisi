@@ -6,6 +6,14 @@
 // eksiksiz tamamlandığında elle silinir.
 'use strict';
 
+// Popup her açılışta diskten okunur; service worker ile sayfaya enjekte edilen
+// betikler ise eklenti Chrome'da YENİLENENE kadar eski sürümde kalır. Bu
+// karışım sessiz ve pahalı bir hataya yol açıyordu: yeni popup'ta kaldırılan
+// haciz türü tiki eski service worker'a hiç ulaşmıyor, toplu akış yine dört
+// türü de sorguluyordu. Sorgu hakları sayılı olduğu için bu numara ile popup,
+// arka planın kendi sürümüyle konuşup konuşmadığını çalıştırmadan önce anlar.
+const PROTOCOL = 2;
+
 const BANKS_KEY = 'ubh_banks';
 const PROGRESS_KEY = 'ubh_progress';
 const BANKS_TTL_MS = 10 * 60 * 1000;
@@ -156,8 +164,8 @@ async function startRun(tabId, run) {
 
   // Kural 1: her yeni çalıştırmada eski banka listesi silinir.
   await clearBanks();
-  // Yeni çalıştırma, önceki toplu akışın bölüm satırlarıyla başlamaz.
-  await setProgress('running', 'Başlatılıyor', { stages: [] });
+  // Yeni çalıştırma, önceki akışın bölüm satırları ve özetiyle başlamaz.
+  await setProgress('running', 'Başlatılıyor', { stages: [], detail: '' });
 
   let injected = true;
   try {
@@ -180,12 +188,18 @@ async function startRun(tabId, run) {
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   switch (message?.type) {
+    case 'UBH_PING':
+      sendResponse({
+        ok: true,
+        protocol: PROTOCOL,
+        version: chrome.runtime.getManifest().version
+      });
+      return false;
+
     case 'UBH_START':
       startRun(message.tabId, {
-        flow: message.flow || 'banka',
-        payment: message.payment,
-        sms: message.sms,
-        evrak: message.evrak !== false,
+        // Çalışacak haciz türleri ve ücret onayı: popup'ın verdiği tek karar.
+        types: Array.isArray(message.types) ? message.types : [],
         paid: message.paid === true
       }).then(sendResponse);
       return true;
@@ -197,8 +211,13 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
     case 'UBH_DONE':
       // Kural 4: tüm işlemler eksiksiz tamamlandığında silinir.
+      // Alt satırda sonucun özeti durur: kaç kayıt eklendi, evrak oluştu mu.
       clearBanks()
-        .then(() => setProgress('done', message.label || 'Tamamlandı'))
+        .then(() => setProgress(
+          'done',
+          message.label || 'Tamamlandı',
+          { detail: message.detail || '' }
+        ))
         .then(() => sendResponse({ ok: true }));
       return true;
 

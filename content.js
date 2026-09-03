@@ -8,10 +8,10 @@
 // Ayrıca sorgu sonucunda "... kaydı yok" cümlesinin çıkıp çıkmadığını anlamak
 // için sayfa metninde YALNIZ o cümle kalıbı aranır; eşleşen cümle dışında
 // hiçbir alan okunmaz, hiçbir yere yazılmaz.
-// Dosya numarası, taraf adları, TCKN, hesap numarası, bakiye ve ödeme
-// ekranındaki SMS/doğrulama alanları hiçbir yerde okunmaz. EGM, İcra Dosyası
-// ve TAKBİS sonuç tablolarından plaka, ada/parsel, dosya numarası gibi hiçbir
-// alan okunmaz; o tablolarda yalnız satırların ekleme düğmelerine basılır.
+// Dosya numarası, taraf adları, TCKN, hesap numarası ve bakiye hiçbir yerde
+// okunmaz; ödeme ekranı hiç açılmaz. EGM, İcra Dosyası ve TAKBİS sonuç
+// tablolarından plaka, ada/parsel, dosya numarası gibi hiçbir alan okunmaz;
+// o tablolarda yalnız satırların ekleme düğmelerine basılır.
 (() => {
   'use strict';
 
@@ -452,25 +452,6 @@
     };
   }
 
-  // "Evrak Türü" seçicisinin placeholder'ı yoktur; etiketinden bulunur.
-  function findEvrakTuruEditor() {
-    const labels = inRoot('.control-label, label')
-      .filter(el => /^evrak türü\s*\*?$/i.test(textOf(el)));
-
-    for (const label of labels) {
-      const group = label.closest('.form-group') || label.parentElement;
-      const editor = group?.querySelector('.dx-dropdowneditor');
-
-      if (editor && isVisible(editor)) {
-        return {
-          input: editor.querySelector('input'),
-          button: editor.querySelector('.dx-dropdowneditor-button') || editor
-        };
-      }
-    }
-    return null;
-  }
-
   async function waitFor(produce, timeoutMs, intervalMs = 120) {
     const started = Date.now();
 
@@ -547,6 +528,37 @@
     const button = findQueryPanel(panelText)
       ?.querySelector('[role="button"][aria-label="Sorgula"]');
     return isVisible(button) ? button : null;
+  }
+
+  // Sorgu kartları dosya penceresindeki "Sorgular" sekmesinin altındadır.
+  // Akış başka bir sekmede duruyorsa (ör. bir önceki bölümün bıraktığı Talep
+  // Gönder ekranında ya da kullanıcı elle başka bir sekmeye geçtiyse) kartlar
+  // ekranda hiç olmaz ve sorgu "bölüm açılmadı" diye düşerdi. Bu yüzden her
+  // sorgudan önce sekmeye dönülür. Sekme zaten seçiliyse TIKLANMAZ: seçili
+  // sekmeye yeniden tıklamak o an açık olan sorgu şeridini kapatabilir.
+  const SORGULAR_TAB = 'Sorgular';
+
+  const tabSelected = tab =>
+    tab.getAttribute('aria-selected') === 'true' ||
+    tab.classList.contains('dx-tab-selected');
+
+  const queryCardsVisible = () => inRoot('button.query-button').length > 0;
+
+  async function ensureQueryScreen() {
+    const tab = findTab(SORGULAR_TAB);
+
+    // Sekme bu ekranda başka bir adla duruyorsa kartların görünür olması
+    // yeterli kanıttır; akış eskisi gibi sürer.
+    if (!tab) {
+      if (queryCardsVisible()) return;
+      fail('Sorgular sekmesi bulunamadı');
+    }
+
+    if (tabSelected(tab) && queryCardsVisible()) return;
+
+    tab.click();
+
+    if (!await waitFor(queryCardsVisible, 10000)) fail('Sorgular ekranı açılmadı');
   }
 
   // Kart açık değilse açar. Açıksa hiç tıklamaz: açık bir kartın kendisine
@@ -676,14 +688,16 @@
 
   // allowPaid yalnız toplu akışta ve kullanıcı tikini açtıysa true gelir.
   async function stepQueryBanks(allowPaid = false) {
+    step('Banka sorgusu açılıyor');
+
+    // Sorgu kartları yalnız "Sorgular" sekmesinde durur.
+    await ensureQueryScreen();
+
     if (findSourceGrid()) {
       // Kullanıcı sorguyu zaten yaptıysa 60 dakikalık limite takılmamak için
       // yeniden sorgulanmaz.
-      step('Banka sorgusu açılıyor');
       step('Banka sorgulanıyor');
     } else {
-      step('Banka sorgusu açılıyor');
-
       // Başka bir sorgu kartı (EGM, TAKBİS ...) açıkken de banka kartı açılır.
       await openQueryCard(BANKA_CARD, BANKA_PANEL, 'Banka bölümü açılmadı');
 
@@ -995,48 +1009,6 @@
     if (await waitFor(alertVisible, 700)) dismissInfoAlert();
   }
 
-  // --- Ödeme ve evrak türü --------------------------------------------------
-
-  async function stepEvrakTuru() {
-    step('Evrak türü seçiliyor');
-
-    const editor = await waitFor(findEvrakTuruEditor, 12000);
-    if (!editor) fail('Evrak türü alanı bulunamadı');
-
-    if (!await openDropdownAndPick(editor, 'Haciz Talebi')) {
-      fail('Haciz Talebi seçilemedi');
-    }
-
-    if (!await waitFor(() => {
-      const current = findEvrakTuruEditor();
-      return current?.input && current.input.value.trim().length > 0;
-    }, 6000)) fail('Evrak türü seçilemedi');
-  }
-
-  // withSms=false ise ödeme düğmesine BASILMAZ; yalnız Vakıfbank işaretlenir.
-  async function stepVakifbank(withSms) {
-    step('Vakıfbank seçiliyor');
-    await selectRadio('Vakıfbank', 'Vakıfbank seçilemedi');
-
-    if (!withSms) return;
-
-    step('Kendi hesaplarımla ödeme');
-
-    const payButton = await waitFor(
-      () => findActionButton('Kendi Hesaplarım ile Ödeme'), 10000
-    );
-    if (!payButton) fail('Ödeme düğmesi bulunamadı');
-
-    // Bu tıklamadan sonra açılan doğrulama alanları okunmaz.
-    payButton.click();
-    await sleep(2500);
-  }
-
-  async function stepEbarobirlik() {
-    step('e-barobirlik kart seçiliyor');
-    await selectRadio('e-barobirlik kart', 'e-barobirlik seçilemedi');
-  }
-
   // =========================================================================
   // BÖLÜM 3B - SORGU HACİZLERİ (EGM / İCRA DOSYASI / TAKBİS)
   // =========================================================================
@@ -1262,6 +1234,9 @@
   async function stepOpenQuery(flow) {
     step(`${flow.label} sorgusu açılıyor`);
 
+    // Sorgu kartları yalnız "Sorgular" sekmesinde durur.
+    await ensureQueryScreen();
+
     // Panel bu akış için zaten açıksa ekrandaki sonuç da bu akışa aittir.
     if (findQueryPanel(flow.panel)) return;
 
@@ -1414,69 +1389,24 @@
 
   let running = false;
 
-  async function runBankaFlow(payment, sms) {
-    // SMS onayı yalnız Vakıfbank yolunda anlamlıdır.
-    const withSms = payment === 'vakifbank' && sms === true;
-
-    // Temel akış 11 adım; ödeme seçenekleri sonuna 2 (SMS'te 3) adım ekler.
-    stepTotal =
-      payment === 'vakifbank' ? (withSms ? 14 : 13) :
-      payment === 'ebarobirlik' ? 13 : 11;
-
-    await stepQueryBanks();
-    await stepOpenTalepForm();
-    await stepSelectBanks();
-    await stepSelectAccountTypes();
-    await stepSelectIhbarname();
-    await stepAddTalep();
-    await stepCreateDocument();
-
-    if (payment === 'vakifbank') {
-      await stepVakifbank(withSms);
-      await stepEvrakTuru();
-    } else if (payment === 'ebarobirlik') {
-      await stepEbarobirlik();
-      await stepEvrakTuru();
-    }
-  }
-
-  // Talep evrakı istenmiyorsa akış Talep Gönder ekranında biter.
-  // Bitiş mesajını döndürür; kayıt çıkmadıysa mesaj bunu söyler.
-  async function runQueryFlow(flow, withEvrak, allowPaid) {
-    stepTotal = withEvrak ? 6 : 4;
-
-    await stepOpenQuery(flow);
-
-    // Borçlunun kaydı yoksa eklenecek bir şey de yoktur: hata değildir, akış
-    // burada biter ve durum çubuğu nedenini yazar.
-    if (await stepRunQuery(flow, allowPaid) === 'empty') return flow.empty;
-
-    await stepAddAllToTalep(flow);
-    await stepOpenQueryTalepForm();
-
-    if (withEvrak) {
-      await stepCreateDocument();
-      await stepEvrakTuru();
-    }
-
-    return 'Tamamlandı';
-  }
-
   // --- Toplu haciz ----------------------------------------------------------
   //
-  // Tek düğmeyle EGM, icra dosyası, TAKBİS ve banka hacizleri sırayla
-  // hazırlanır. Aşağıdaki bölümlerin kendi tikleri bu akışta hiç okunmaz;
-  // toplu akışın tek seçeneği ücret onayıdır:
+  // Eklentinin tek akışı: popup'ta tikli bırakılan haciz türleri sırayla
+  // hazırlanır. Seçenekler tür tikleri ve ücret onayıdır:
   //
-  //   - İlk üç sorguda kayıtlar yalnız haciz talebine eklenir. Talep evrakı
-  //     oluşturulmaz, evrak türü seçilmez, Talep Gönder sekmesine de
-  //     geçilmez: hepsi banka bölümünün son adımında tek evrakta toplanır.
-  //   - Banka bölümünde ödeme türü ve evrak türü girilmez; akış "Talep Evrakı
-  //     Oluştur" düğmesine basılmasıyla biter.
+  //   - Tiki kaldırılan tür hiç sorgulanmaz, satırı da listeye düşmez.
+  //   - Sorgu bölümlerinde kayıtlar yalnız haciz talebine eklenir. Talep
+  //     evrakı oluşturulmaz, evrak türü seçilmez, Talep Gönder sekmesine de
+  //     geçilmez: hepsi en sondaki tek evrak adımında toplanır.
+  //   - Banka bölümü, seçim sırası ne olursa olsun DAİMA en son çalışır:
+  //     talep formunu o açar ve sorgu bölümlerinin eklediği kayıtlar da aynı
+  //     evrakta toplanır. Ödeme türü ve evrak türü girilmez.
+  //   - Akış her hâlükârda talep evrakı adımıyla biter.
   //   - Bir bölüm yarıda kalırsa akış durmaz: ekranda kalan kutu kapatılır,
   //     ne olduğu o bölümün satırına yazılır ve sıradaki bölüme geçilir.
 
   const BULK_QUERIES = ['egm', 'icra', 'takbis'];
+  const BULK_TYPES = [...BULK_QUERIES, 'banka'];
 
   // Bölüm satırları popup'ta ortak durum kutucuğunun altında ayrı bir liste
   // olarak görünür. Her satır bir cümleyle ne olduğunu söyler: kaç kayıt
@@ -1562,13 +1492,15 @@
   // oluşturulur. Kurum borçlularda banka sorgusu hiç yapılamıyor ("Kurumlar
   // için bu sorgu yapılamamaktadır"); evrak banka adımına bağlı kaldığında,
   // EGM ve TAKBİS'ten eklenen talepler evraksız kalıyordu.
+  // Evrak gerçekten oluştuysa true döner; kayıt yoksa oluşturulacak bir şey
+  // olmadığından akış hatasız ama evraksız biter.
   async function runBulkDocument(prepared) {
     stage('evrak', 'Talep evrakı', 'running', 'Oluşturuluyor');
 
     if (prepared === 0) {
       stage('evrak', 'Talep evrakı', 'done',
         'Talebe eklenen kayıt olmadığı için evrak oluşturulmadı');
-      return true;
+      return false;
     }
 
     try {
@@ -1594,10 +1526,20 @@
     }
   }
 
-  async function runBulkFlow(allowPaid) {
-    // Üç sorgu bölümünün 3'er adımı (9), banka bölümünün 10 adımı ve evrak
-    // bölümünün 2 adımı.
-    stepTotal = 21;
+  async function runBulkFlow(allowPaid, types) {
+    // Türler popup'tan gelir. Eski bir popup'tan tür listesi hiç gelmezse
+    // akış eskisi gibi dördünü de çalıştırır.
+    const chosen = Array.isArray(types) && types.length > 0 ? types : BULK_TYPES;
+
+    // Sıra burada belirlenir, kullanıcının tikleme sırası değil: banka bölümü
+    // talep formunu açtığı için daima en sonda çalışmalıdır.
+    const queries = BULK_QUERIES.filter(key => chosen.includes(key));
+    const withBanka = chosen.includes('banka');
+
+    // Her sorgu bölümü 4 adım (kart, sorgu, hazırlık, kayıt sayacı), banka
+    // bölümü 10 adım. Evrak bölümü normalde 2 adımdır; banka bölümü Talep
+    // Gönder ekranında bittiği için o sekmeyi açma adımı orada düşer.
+    stepTotal = queries.length * 4 + (withBanka ? 11 : 2);
 
     let failed = 0;
 
@@ -1605,7 +1547,10 @@
     // bu karar verir.
     let prepared = 0;
 
-    for (const key of BULK_QUERIES) {
+    // Bitişte gösterilecek özet için bölüm başına kayıt sayısı.
+    const counts = [];
+
+    for (const key of queries) {
       const flow = QUERY_FLOWS[key];
       stage(key, flow.label, 'running', 'Sorgulanıyor');
       paidApproved = false;
@@ -1613,6 +1558,7 @@
       try {
         const result = await runBulkQuery(flow, allowPaid);
         prepared += result.added;
+        counts.push(`${flow.label} ${result.added}`);
         stage(key, flow.label, 'done', result.note);
       } catch (error) {
         failed += 1;
@@ -1624,30 +1570,34 @@
       }
     }
 
-    stage('banka', 'Banka', 'running', 'Sorgulanıyor');
-    paidApproved = false;
+    if (withBanka) {
+      stage('banka', 'Banka', 'running', 'Sorgulanıyor');
+      paidApproved = false;
 
-    try {
-      await stepQueryBanks(allowPaid);
-      await stepOpenTalepForm();
+      try {
+        await stepQueryBanks(allowPaid);
+        await stepOpenTalepForm();
 
-      const selected = await stepSelectBanks();
+        const selected = await stepSelectBanks();
 
-      await stepSelectAccountTypes();
-      await stepSelectIhbarname();
-      await stepAddTalep();
+        await stepSelectAccountTypes();
+        await stepSelectIhbarname();
+        await stepAddTalep();
 
-      prepared += selected;
-      stage('banka', 'Banka', 'done', withCost(
-        `${selected} banka için 89/1 haciz talebi eklendi`
-      ));
-    } catch (error) {
-      failed += 1;
-      stage('banka', 'Banka', 'error', stopNote(error));
-      await clearOverlays();
+        prepared += selected;
+        counts.push(`Banka ${selected}`);
+        stage('banka', 'Banka', 'done', withCost(
+          `${selected} banka için 89/1 haciz talebi eklendi`
+        ));
+      } catch (error) {
+        failed += 1;
+        stage('banka', 'Banka', 'error', stopNote(error));
+        await clearOverlays();
+      }
     }
 
-    if (!await runBulkDocument(prepared)) failed += 1;
+    const evrakCreated = await runBulkDocument(prepared);
+    if (prepared > 0 && !evrakCreated) failed += 1;
 
     // Bir bölüm bile eksik kaldıysa durum yeşile dönmez: hazırlanan talep
     // eksiktir ve kullanıcının bunu fark etmesi gerekir.
@@ -1658,9 +1608,17 @@
       );
     }
 
-    return prepared === 0
-      ? 'Tamamlandı, eklenecek kayıt çıkmadı'
-      : 'Tamamlandı, talep evrakı oluşturuldu';
+    // Bitiş satırı sonucu tek cümlede toplar: kaç kayıt eklendi, evrak
+    // oluştu mu, hangi bölümden kaçar kayıt geldi.
+    const breakdown = counts.join(', ');
+
+    return {
+      label: 'Tamamlandı',
+      detail: prepared === 0
+        ? `Hiçbir bölümden kayıt çıkmadı, talep evrakı oluşturulmadı. (${breakdown})`
+        : `Toplam ${prepared} kayıt haciz talebine eklendi, talep evrakı ` +
+          `oluşturuldu. (${breakdown})`
+    };
   }
 
   async function run(options) {
@@ -1672,19 +1630,9 @@
     paidApproved = false;
 
     try {
-      let label = 'Tamamlandı';
+      const result = await runBulkFlow(options.paid === true, options.types);
 
-      if (options.flow === 'toplu') {
-        label = await runBulkFlow(options.paid === true);
-      } else if (options.flow === 'banka') {
-        await runBankaFlow(options.payment, options.sms);
-      } else {
-        const flow = QUERY_FLOWS[options.flow];
-        if (!flow) fail('Bilinmeyen haciz türü');
-        label = await runQueryFlow(flow, options.evrak !== false, options.paid === true);
-      }
-
-      send({ t: 'DONE', label });
+      send({ t: 'DONE', label: result.label, detail: result.detail });
     } catch (error) {
       const stop = error instanceof StepError ? error : null;
       send({ t: 'FAIL', label: stop?.headline || '', detail: stop?.detail || '' });

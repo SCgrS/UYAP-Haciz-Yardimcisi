@@ -1,58 +1,54 @@
-// Popup: haciz türü başına bir düğme, ortak canlı adım göstergesi, tema ve
-// seçenekler.
+// Popup: tek düğme, haciz türü tikleri, canlı adım göstergesi ve tema.
 //
 // Burada dosya/taraf verisi tutulmaz. chrome.storage.local yalnız tercihleri
-// (tema, ödeme seçeneği, bölüm tikleri) saklar. Adım durumu
+// (tema, haciz türü tikleri, ücret onayı) saklar. Adım durumu
 // chrome.storage.session'dadır.
 'use strict';
+
+// background.js ile aynı numara. Tutmuyorsa Chrome hâlâ eklentinin eski
+// sürümünü çalıştırıyordur ve popup'ta yapılan seçimler sayfaya ulaşmaz;
+// böyle bir durumda iş hiç başlatılmaz (bkz. background.js'teki açıklama).
+const PROTOCOL = 2;
 
 const PROGRESS_KEY = 'ubh_progress';
 const PREFS_KEY = 'ubh_prefs';
 const UYAP_PREFIX = 'https://avukat.uyap.gov.tr/';
 
-// Sorgu bölümleri: her biri kendi tercihlerini ayrı tutar.
-const QUERY_FLOWS = ['egm', 'icra', 'takbis'];
-
-// Toplu bölümün tek tercihi ücret onayıdır; sorgu bölümlerinin tikleriyle
-// karışmasın diye ayrı tutulur.
-const OPT_FLOWS = [...QUERY_FLOWS, 'toplu'];
+// Toplu akışta çalışabilecek haciz türleri. Sıra burada değil sayfa tarafında
+// belirlenir: banka seçiliyse daima en sonda çalışır.
+const BULK_TYPES = ['egm', 'icra', 'takbis', 'banka'];
 
 // Sayfa kapanmış ya da sekme değişmişse "çalışıyor" durumu sonsuza kadar
-// asılı kalmasın diye üst sınır. Sorgu akışlarında tek tek eklenecek çok
-// sayıda kayıt olabildiğinden banka akışındaki süreye göre geniş tutulur.
+// asılı kalmasın diye üst sınır. Tek tek eklenecek çok sayıda kayıt
+// olabildiğinden geniş tutulur.
 const STALE_MS = 10 * 60 * 1000;
+
+// Çalışma sürerken sayfaya dokunmak sıralamayı bozabiliyor; uyarı tam da o
+// sırada, durum çubuğunun altında durur.
+const RUNNING_HINT = 'İşlem sürerken sayfada bir yere tıklamayın; ' +
+                     'sıralamayı ve işlemleri sekteye uğratabilirsiniz.';
 
 const el = {
   theme: document.getElementById('theme'),
-  starts: [...document.querySelectorAll('.start')],
+  start: document.getElementById('start'),
   status: document.getElementById('status'),
   statusText: document.getElementById('status-text'),
   statusDetail: document.getElementById('status-detail'),
   statusFill: document.getElementById('status-fill'),
   stages: document.getElementById('stages'),
-  optEnabled: document.getElementById('opt-enabled'),
-  optChoices: document.getElementById('opt-choices'),
-  optSms: document.getElementById('opt-sms'),
-  optSmsInput: document.getElementById('opt-sms-input'),
-  version: document.getElementById('version'),
-  helpBtn: document.getElementById('help-btn'),
-  help: document.getElementById('help')
+  version: document.getElementById('version')
 };
 
 // --- Tercihler --------------------------------------------------------------
 
-// Sorgu bölümlerinde talep evrakı öntanımlı olarak oluşturulur; ücretli sorgu
-// onayı ise para harcattığı için öntanımlı olarak kapalıdır.
+// Dört haciz türü de öntanımlı olarak tiklidir: olağan kullanım hepsini
+// hazırlamaktır, tik kaldırmak istisnadır. Ücretli sorgu onayı ise para
+// harcattığı için öntanımlı olarak kapalıdır.
 function defaultPrefs() {
-  const prefs = {
+  return {
     theme: 'light',
-    paymentEnabled: false,
-    payment: 'vakifbank',
-    sms: true,
-    toplu: { paid: false }
+    toplu: { paid: false, egm: true, icra: true, takbis: true, banka: true }
   };
-  for (const flow of QUERY_FLOWS) prefs[flow] = { evrak: true, paid: false };
-  return prefs;
 }
 
 let prefs = defaultPrefs();
@@ -60,19 +56,9 @@ let prefs = defaultPrefs();
 function applyPrefs() {
   document.documentElement.dataset.theme = prefs.theme;
 
-  el.optEnabled.checked = prefs.paymentEnabled;
-  el.optChoices.hidden = !prefs.paymentEnabled;
-
-  const radio = document.querySelector(`input[name="payment"][value="${prefs.payment}"]`);
-  if (radio) radio.checked = true;
-
-  // SMS onayı yalnız Vakıfbank yolunda anlamlıdır.
-  el.optSmsInput.checked = prefs.sms;
-  el.optSms.hidden = !(prefs.paymentEnabled && prefs.payment === 'vakifbank');
-
   for (const input of document.querySelectorAll('[data-opt]')) {
-    const [flow, key] = input.dataset.opt.split('.');
-    input.checked = !!prefs[flow]?.[key];
+    const [group, key] = input.dataset.opt.split('.');
+    input.checked = !!prefs[group]?.[key];
   }
 }
 
@@ -84,23 +70,21 @@ async function loadPrefs() {
   const stored = await chrome.storage.local.get(PREFS_KEY);
   const saved = stored[PREFS_KEY];
 
+  // Yalnız tanınan alanlar alınır: eski sürümlerden kalan (ödeme türü, bölüm
+  // tikleri) anahtarlar taşınmaz.
   if (saved) {
-    prefs = { ...prefs, ...saved };
-    // Bölüm tercihleri iç içe olduğundan tek tek birleştirilir; eski bir
-    // sürümden gelen kayıtta bölüm hiç yoksa öntanımlı değerler kalır.
-    for (const flow of OPT_FLOWS) {
-      prefs[flow] = { ...defaultPrefs()[flow], ...(saved[flow] || {}) };
-    }
+    if (saved.theme === 'dark' || saved.theme === 'light') prefs.theme = saved.theme;
+    prefs.toplu = { ...defaultPrefs().toplu, ...(saved.toplu || {}) };
   }
   applyPrefs();
 }
 
 // --- Durum ------------------------------------------------------------------
 
-// Toplu akışta her bölüm için bir satır: durum noktası, bölümün adı ve
-// gerekiyorsa altında tek satırlık not ("Araç kaydı yok", engelin adı ...).
-// Metin daima textContent ile yazılır; sayfadan gelen bir cümle biçimlendirme
-// olarak yorumlanmaz.
+// Her bölüm için bir satır: durum noktası, bölümün adı ve gerekiyorsa altında
+// tek satırlık not ("Araç kaydı yok", engelin adı ...). Metin daima
+// textContent ile yazılır; sayfadan gelen bir cümle biçimlendirme olarak
+// yorumlanmaz.
 function stageRow(item) {
   const row = document.createElement('li');
   row.className = 'stage';
@@ -149,10 +133,14 @@ function render(progress) {
   el.status.dataset.state = state;
   el.statusText.textContent = label;
 
-  for (const button of el.starts) button.disabled = state === 'running';
+  el.start.disabled = state === 'running';
 
-  // Hatada nerede durulduğunu söyleyen kısa ipucu.
-  const detail = state === 'error' ? (progress?.detail || '') : '';
+  // Bittiğinde SONUÇ özeti, takıldığında nerede durulduğu, çalışırken de
+  // sayfaya dokunmama uyarısı aynı satırda görünür.
+  let detail = '';
+  if (state === 'done' || state === 'error') detail = progress?.detail || '';
+  else if (state === 'running') detail = RUNNING_HINT;
+
   el.statusDetail.textContent = detail;
   el.statusDetail.hidden = !detail;
 
@@ -186,39 +174,13 @@ el.theme.addEventListener('click', () => {
   savePrefs();
 });
 
-el.optEnabled.addEventListener('change', () => {
-  prefs.paymentEnabled = el.optEnabled.checked;
-  applyPrefs();
-  savePrefs();
-});
-
-for (const radio of document.querySelectorAll('input[name="payment"]')) {
-  radio.addEventListener('change', () => {
-    if (!radio.checked) return;
-    prefs.payment = radio.value;
-    applyPrefs();
-    savePrefs();
-  });
-}
-
-el.optSmsInput.addEventListener('change', () => {
-  prefs.sms = el.optSmsInput.checked;
-  savePrefs();
-});
-
 for (const input of document.querySelectorAll('[data-opt]')) {
   input.addEventListener('change', () => {
-    const [flow, key] = input.dataset.opt.split('.');
-    prefs[flow][key] = input.checked;
+    const [group, key] = input.dataset.opt.split('.');
+    prefs[group][key] = input.checked;
     savePrefs();
   });
 }
-
-el.helpBtn.addEventListener('click', () => {
-  const open = el.helpBtn.getAttribute('aria-expanded') === 'true';
-  el.helpBtn.setAttribute('aria-expanded', String(!open));
-  el.help.hidden = open;
-});
 
 // Etkin sekme popup içinden bulunur: service worker'ın kendine ait bir
 // pencere bağlamı yoktur, orada "currentWindow" güvenilir değildir.
@@ -229,43 +191,59 @@ async function activeUyapTab() {
   return tab;
 }
 
-for (const button of el.starts) {
-  button.addEventListener('click', async () => {
-    const flow = button.dataset.flow;
-    const isBanka = flow === 'banka';
-    // Toplu akış sabittir: bölüm tikleri ve ödeme seçeneği okunmaz.
-    const isBulk = flow === 'toplu';
-
-    for (const other of el.starts) other.disabled = true;
-    render({ state: 'running', label: 'Başlatılıyor', at: Date.now() });
-
-    const payment = prefs.paymentEnabled ? prefs.payment : 'none';
-
-    try {
-      const tab = await activeUyapTab();
-
-      if (!tab) {
-        render({ state: 'error', label: 'UYAP Avukat Portalı sekmesi bulunamadı' });
-        return;
-      }
-
-      await chrome.runtime.sendMessage({
-        type: 'UBH_START',
-        tabId: tab.id,
-        flow,
-        payment: isBanka ? payment : 'none',
-        sms: isBanka && payment === 'vakifbank' ? prefs.sms : false,
-        // Banka akışında evrak türü hep girilir; sorgu akışlarında bölüm tiki
-        // karar verir. Ücret onayı yalnız sorgu akışlarında sorulabilir.
-        // Toplu akış ikisini de okumaz.
-        evrak: isBulk ? false : isBanka ? true : !!prefs[flow]?.evrak,
-        paid: isBanka ? false : !!prefs[flow]?.paid
-      });
-    } catch (_) {
-      render({ state: 'error', label: 'Bir şeyler ters gitti' });
-    }
-  });
+// Arka plan bu popup'la aynı sürüm mü? Eski service worker bilinmeyen mesaja
+// yanıt vermez; o zaman sendMessage ya boş döner ya da hata atar.
+async function workerReady() {
+  try {
+    const reply = await chrome.runtime.sendMessage({ type: 'UBH_PING' });
+    return reply?.protocol === PROTOCOL;
+  } catch (_) {
+    return false;
+  }
 }
+
+el.start.addEventListener('click', async () => {
+  const types = BULK_TYPES.filter(type => prefs.toplu[type] !== false);
+
+  if (types.length === 0) {
+    render({ state: 'error', label: 'En az bir haciz türü seçin' });
+    return;
+  }
+
+  el.start.disabled = true;
+  render({ state: 'running', label: 'Başlatılıyor', at: Date.now() });
+
+  try {
+    const tab = await activeUyapTab();
+
+    if (!tab) {
+      render({ state: 'error', label: 'UYAP Avukat Portalı sekmesi bulunamadı' });
+      return;
+    }
+
+    // Eski sürüm çalışıyorsa buradaki seçimler sayfaya ulaşmaz: sessizce
+    // yanlış iş yapmaktansa hiç başlamamak gerekir.
+    if (!await workerReady()) {
+      render({
+        state: 'error',
+        label: 'Eklentiyi yenileyin',
+        detail: 'Yeni sürüm yüklendi ama Chrome arka planda hâlâ eskisini ' +
+                'çalıştırıyor. chrome://extensions sayfasında bu eklentinin ' +
+                'yenile düğmesine basın.'
+      });
+      return;
+    }
+
+    await chrome.runtime.sendMessage({
+      type: 'UBH_START',
+      tabId: tab.id,
+      types,
+      paid: prefs.toplu.paid === true
+    });
+  } catch (_) {
+    render({ state: 'error', label: 'Bir şeyler ters gitti' });
+  }
+});
 
 el.version.textContent = `v${chrome.runtime.getManifest().version}`;
 

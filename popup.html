@@ -20,8 +20,8 @@
     </button>
   </header>
 
-  <!-- Durum kutucuğu tüm bölümler için ortaktır: aynı anda tek bir işlem
-       çalışır, hangisi olursa olsun ilerlemesi burada görünür. -->
+  <!-- Durum kutucuğu: çalışırken o an ne yapıldığını, bittiğinde SONUCU
+       (kaç kayıt eklendi, evrak oluştu mu) tek cümleyle yazar. -->
   <section id="status" class="status" data-state="idle" aria-live="polite">
     <span id="status-dot" class="status__dot"></span>
     <span class="status__body">
@@ -31,18 +31,100 @@
     <div class="status__bar"><i id="status-fill"></i></div>
   </section>
 
-  <!-- Toplu akışın bölüm listesi. Yalnız toplu çalıştırmada dolar: hangi
-       bölüm bitti, hangisi nerede takıldı burada satır satır görünür. -->
+  <!-- Bölüm listesi: hangi haciz türü ne yaptı, nerede takıldı. -->
   <ul id="stages" class="stages" aria-live="polite" hidden></ul>
 
   <main>
-
     <section class="grp grp--bulk">
-      <h2 class="grp__title">Toplu Haciz</h2>
-      <button class="start" type="button" data-flow="toplu">Toplu Haczi Hazırla</button>
+      <div class="grp__head">
+        <h2 class="grp__title">Toplu Haciz</h2>
+
+        <!-- Bilgilendirme metninin tamamı burada durur; üzerine gelince açılır. -->
+        <span class="info" tabindex="0" role="button" aria-label="Nasıl çalışır?">
+          <svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/>
+            <path d="M12 11v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="12" cy="7.5" r="1.2" fill="currentColor"/>
+          </svg>
+          <span class="info__panel" role="tooltip">
+            <b>Ne yapar</b>
+            <i>Seçili borçlu için tikli haciz türlerini sırayla sorgular, çıkan
+            kayıtların hepsini haciz talebine ekler ve en sonda tek talep evrakı
+            oluşturur. Talebi göndermez.</i>
+
+            <b>Kullanım</b>
+            <i>Kesinleşmiş takip dosyasını açın, Taraf Bilgileri&#8217;nden bir
+            borçlu seçin, sonra düğmeye basın.</i>
+
+            <b>Sıra</b>
+            <i>EGM &#8594; İcra dosyası &#8594; TAKBİS &#8594; Banka. Banka hangi
+            sırayla tiklenirse tiklensin en sonda çalışır: talep formunu o açar.
+            Tiki kaldırılan tür hiç sorgulanmaz.</i>
+
+            <b>İşlem sürerken sayfaya dokunmayın</b>
+            <i>Sorgulama ve ekleme sürerken sayfada bir yere tıklarsanız
+            sıralamayı ve işlemleri sekteye uğratabilirsiniz.</i>
+
+            <b>Ücretli sorgu</b>
+            <i>Ücretsiz hak bittiğinde UYAP ücret onayı sorar. Eklenti bu kutuya
+            yalnız &#8220;Ücretli sorguyu onayla&#8221; tikliyken basar; tik
+            varsayılan olarak kapalıdır.</i>
+
+            <b>Bölüm listesi</b>
+            <i>Her türün ne yaptığı (&#8220;7 kayıt eklendi&#8221;, &#8220;Araç
+            kaydı yok&#8221;, &#8220;60 dakikada bir yapılabiliyor&#8221;) durum
+            çubuğunun altında satır satır görünür. Bir bölüm takılırsa akış
+            durmaz, sıradakine geçer. Liste, başka bir dosya açtığınızda
+            kendiliğinden temizlenir.</i>
+          </span>
+        </span>
+      </div>
 
       <div class="grp__opts">
-        <label class="check">
+        <div class="picks">
+          <label class="check">
+            <input type="checkbox" data-opt="toplu.egm">
+            <span class="check__box">
+              <svg viewBox="0 0 24 24" width="10" height="10" aria-hidden="true">
+                <path d="m5 12 5 5L19 7" fill="none" stroke="currentColor" stroke-width="3"
+                      stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+            <span class="check__label">EGM</span>
+          </label>
+          <label class="check">
+            <input type="checkbox" data-opt="toplu.icra">
+            <span class="check__box">
+              <svg viewBox="0 0 24 24" width="10" height="10" aria-hidden="true">
+                <path d="m5 12 5 5L19 7" fill="none" stroke="currentColor" stroke-width="3"
+                      stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+            <span class="check__label">İcra dosyası</span>
+          </label>
+          <label class="check">
+            <input type="checkbox" data-opt="toplu.takbis">
+            <span class="check__box">
+              <svg viewBox="0 0 24 24" width="10" height="10" aria-hidden="true">
+                <path d="m5 12 5 5L19 7" fill="none" stroke="currentColor" stroke-width="3"
+                      stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+            <span class="check__label">TAKBİS</span>
+          </label>
+          <label class="check">
+            <input type="checkbox" data-opt="toplu.banka">
+            <span class="check__box">
+              <svg viewBox="0 0 24 24" width="10" height="10" aria-hidden="true">
+                <path d="m5 12 5 5L19 7" fill="none" stroke="currentColor" stroke-width="3"
+                      stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+            <span class="check__label">Banka</span>
+          </label>
+        </div>
+
+        <label class="check check--sep">
           <input type="checkbox" data-opt="toplu.paid">
           <span class="check__box">
             <svg viewBox="0 0 24 24" width="10" height="10" aria-hidden="true">
@@ -54,177 +136,12 @@
         </label>
       </div>
 
-      <p class="grp__note">
-        EGM, icra dosyası, TAKBİS ve banka hacizlerini sırayla hazırlar, sonunda
-        tek talep evrakı oluşturur. Aşağıdaki bölümlerin seçenekleri bu düğmeyi
-        etkilemez.
-      </p>
+      <!-- Düğme bölümün en altındadır: önce ne yapılacağı seçilir, sonra basılır. -->
+      <button id="start" class="start" type="button">Toplu Haczi Hazırla</button>
     </section>
-
-    <section class="grp">
-      <h2 class="grp__title">Banka Haczi</h2>
-      <button class="start" type="button" data-flow="banka">Banka Haczi Hazırla</button>
-
-      <div class="grp__opts">
-        <label class="switch">
-          <input id="opt-enabled" type="checkbox">
-          <span class="switch__track"><span class="switch__knob"></span></span>
-          <span class="switch__label">Ödeme türü ve evrak türü gir</span>
-        </label>
-
-        <div id="opt-choices" class="choices" hidden>
-          <label class="pill">
-            <input type="radio" name="payment" value="vakifbank">
-            <span>Vakıfbank</span>
-          </label>
-          <label class="pill">
-            <input type="radio" name="payment" value="ebarobirlik">
-            <span>e-barobirlik kart</span>
-          </label>
-        </div>
-
-        <label id="opt-sms" class="check" hidden>
-          <input id="opt-sms-input" type="checkbox">
-          <span class="check__box">
-            <svg viewBox="0 0 24 24" width="10" height="10" aria-hidden="true">
-              <path d="m5 12 5 5L19 7" fill="none" stroke="currentColor" stroke-width="3"
-                    stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </span>
-          <span class="check__label">&#8220;Kendi Hesaplarım ile Öde&#8221; butonuna tıkla</span>
-        </label>
-      </div>
-    </section>
-
-    <section class="grp">
-      <h2 class="grp__title">EGM Sorgusu</h2>
-      <button class="start" type="button" data-flow="egm">EGM Haczi Hazırla</button>
-
-      <div class="grp__opts">
-        <label class="check">
-          <input type="checkbox" data-opt="egm.evrak">
-          <span class="check__box">
-            <svg viewBox="0 0 24 24" width="10" height="10" aria-hidden="true">
-              <path d="m5 12 5 5L19 7" fill="none" stroke="currentColor" stroke-width="3"
-                    stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </span>
-          <span class="check__label">Talep evrakını otomatik oluştur</span>
-        </label>
-
-        <label class="check">
-          <input type="checkbox" data-opt="egm.paid">
-          <span class="check__box">
-            <svg viewBox="0 0 24 24" width="10" height="10" aria-hidden="true">
-              <path d="m5 12 5 5L19 7" fill="none" stroke="currentColor" stroke-width="3"
-                    stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </span>
-          <span class="check__label">Ücretli sorguyu onayla</span>
-        </label>
-      </div>
-    </section>
-
-    <section class="grp">
-      <h2 class="grp__title">İcra Dosyası Sorgusu</h2>
-      <button class="start" type="button" data-flow="icra">İcra Dosyası Haczi Hazırla</button>
-
-      <div class="grp__opts">
-        <label class="check">
-          <input type="checkbox" data-opt="icra.evrak">
-          <span class="check__box">
-            <svg viewBox="0 0 24 24" width="10" height="10" aria-hidden="true">
-              <path d="m5 12 5 5L19 7" fill="none" stroke="currentColor" stroke-width="3"
-                    stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </span>
-          <span class="check__label">Talep evrakını otomatik oluştur</span>
-        </label>
-
-        <label class="check">
-          <input type="checkbox" data-opt="icra.paid">
-          <span class="check__box">
-            <svg viewBox="0 0 24 24" width="10" height="10" aria-hidden="true">
-              <path d="m5 12 5 5L19 7" fill="none" stroke="currentColor" stroke-width="3"
-                    stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </span>
-          <span class="check__label">Ücretli sorguyu onayla</span>
-        </label>
-      </div>
-    </section>
-
-    <section class="grp">
-      <h2 class="grp__title">TAKBİS Sorgusu</h2>
-      <button class="start" type="button" data-flow="takbis">TAKBİS Haczi Hazırla</button>
-
-      <div class="grp__opts">
-        <label class="check">
-          <input type="checkbox" data-opt="takbis.evrak">
-          <span class="check__box">
-            <svg viewBox="0 0 24 24" width="10" height="10" aria-hidden="true">
-              <path d="m5 12 5 5L19 7" fill="none" stroke="currentColor" stroke-width="3"
-                    stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </span>
-          <span class="check__label">Talep evrakını otomatik oluştur</span>
-        </label>
-
-        <label class="check">
-          <input type="checkbox" data-opt="takbis.paid">
-          <span class="check__box">
-            <svg viewBox="0 0 24 24" width="10" height="10" aria-hidden="true">
-              <path d="m5 12 5 5L19 7" fill="none" stroke="currentColor" stroke-width="3"
-                    stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </span>
-          <span class="check__label">Ücretli sorguyu onayla</span>
-        </label>
-      </div>
-    </section>
-
   </main>
 
   <footer>
-    <button id="help-btn" class="help-btn" type="button" aria-expanded="false" aria-controls="help">
-      Nasıl kullanılır?
-      <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
-        <path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    </button>
-    <div id="help" class="help" hidden>
-      <p>
-        Kesinleşmiş bir takip dosyasını açın, borçlu bilgileri sekmesini açın,
-        bir borçlu seçin, daha sonra eklenti simgesine tıklayıp ilgili bölümün
-        düğmesine basın.
-      </p>
-      <p>
-        &#8220;Toplu Haczi Hazırla&#8221; sırayla EGM, icra dosyası, TAKBİS ve
-        banka sorgularını yapar, çıkan kayıtların hepsini haciz talebine ekler
-        ve en sonda tek talep evrakı oluşturur. Evrak, banka sorgusu
-        yapılamasa bile (ör. kurum borçlularda) oluşturulur. Ödeme türü ve
-        evrak türü girilmez. Ücretsiz sorgu hakkı bittiğinde UYAP&#8217;ın ücret kutusuna
-        yalnız o bölümdeki &#8220;Ücretli sorguyu onayla&#8221; tiki açıksa
-        basılır; tik varsayılan olarak kapalıdır. Her bölümün ne yaptığı
-        (&#8220;7 kayıt eklendi&#8221;, &#8220;Araç kaydı yok&#8221;,
-        &#8220;60 dakikada bir yapılabiliyor&#8221;) durum çubuğunun altındaki
-        listede satır satır görünür; bir bölüm takılırsa akış durmaz, sıradaki
-        bölüme geçer. Liste, dosya penceresini kapattığınızda ya da başka bir
-        dosya açtığınızda kendiliğinden temizlenir.
-      </p>
-      <p>
-        Her bölüm kendi başına çalışır. &#8220;Talep evrakını otomatik
-        oluştur&#8221; tiki kaldırılırsa o bölüm talepleri ekler ve Talep Gönder
-        ekranında durur; evrak oluşturmaz, evrak türünü seçmez.
-      </p>
-      <p>
-        Ücretsiz sorgu hakkı bittiğinde UYAP ücret onayı sorar. Eklenti bu kutuya
-        kendiliğinden dokunmaz; onaylamasını istiyorsanız o bölümdeki
-        &#8220;Ücretli sorguyu onayla&#8221; tikini işaretleyin.
-      </p>
-    </div>
-
     <div class="foot">
       <span id="version"></span>
       <a class="foot__link" href="https://x.com/CgrShn" target="_blank" rel="noopener noreferrer">

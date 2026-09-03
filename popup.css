@@ -1,4 +1,4 @@
-/* UYAP Banka Haciz Yardımcısı - popup teması */
+/* UYAP Haciz Yardımcısı - popup teması */
 
 :root {
   --bg: #f4f6f8;
@@ -91,78 +91,9 @@ body {
 html[data-theme="dark"] .ico-sun { display: none; }
 html[data-theme="dark"] .ico-moon { display: inline; }
 
-/* --- Bölümler ----------------------------------------------------------- */
-/* Her haciz türü kendi başlığı, kendi düğmesi ve kendi seçenekleriyle ayrı
-   bir bölümdür. Durum kutucuğu ortaktır ve bölümlerin üstünde durur. */
-
-.grp {
-  padding: 8px 9px 9px;
-  border: 1px solid var(--border);
-  border-radius: 11px;
-  background: var(--surface);
-}
-
-.grp + .grp { margin-top: 7px; }
-
-.grp__title {
-  margin: 0 0 6px 1px;
-  font-size: 10px;
-  line-height: 1.2;
-  font-weight: 700;
-  letter-spacing: .06em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.grp__opts { margin-top: 8px; }
-
-/* Kutunun ilk seçeneği düğmeye yapışmasın diye kendi üst boşluğu alınır. */
-.grp__opts > .check:first-child { margin-top: 0; }
-
-/* Toplu bölüm en üstte durur ve tek bakışta ayırt edilsin diye çerçevesi
-   vurgu rengindedir; altındaki bölümlerle aynı iskelete oturur. */
-.grp--bulk {
-  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
-  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
-}
-
-.grp--bulk + .grp { margin-top: 10px; }
-
-.grp__note {
-  margin: 8px 1px 0;
-  font-size: 11px;
-  line-height: 1.4;
-  color: var(--muted);
-}
-
-/* --- Ana düğme ---------------------------------------------------------- */
-
-.start {
-  width: 100%;
-  padding: 9px;
-  border: 0;
-  border-radius: 9px;
-  background: var(--accent);
-  color: var(--accent-text);
-  font: 600 13px/1.2 inherit;
-  letter-spacing: -.01em;
-  cursor: pointer;
-  transition: filter .15s, transform .05s;
-}
-
-.start:hover:not(:disabled) { filter: brightness(1.07); }
-.start:active:not(:disabled) { transform: translateY(1px); }
-
-.start:disabled {
-  opacity: .55;
-  cursor: default;
-  box-shadow: none;
-}
-
 /* --- Durum kutucuğu ----------------------------------------------------- */
+/* Çalışırken o an ne yapıldığını, bittiğinde sonucun özetini yazar. */
 
-/* Engel mesajı birkaç satır sürebildiği için nokta ortada değil, ilk satırın
-   hizasında durur. */
 .status {
   position: relative;
   display: flex;
@@ -174,6 +105,7 @@ html[data-theme="dark"] .ico-moon { display: inline; }
   border-radius: 10px;
   background: var(--surface);
   overflow: hidden;
+  transition: background .2s, border-color .2s;
 }
 
 .status__dot {
@@ -197,8 +129,9 @@ html[data-theme="dark"] .ico-moon { display: inline; }
   overflow-wrap: anywhere;
 }
 
-/* Engel hâlinde burada UYAP'ın kendi cümlesi durur; okunabilir olmalı, bu
-   yüzden soluklaştırılmaz. */
+/* Bittiğinde sonucun özeti, takıldığında engelin nedeni, çalışırken de
+   sayfaya dokunmama uyarısı burada durur; okunabilir olmalı, bu yüzden
+   soluklaştırılmaz. */
 .status__detail {
   display: block;
   margin-top: 3px;
@@ -232,9 +165,32 @@ html[data-theme="dark"] .ico-moon { display: inline; }
 
 .status[data-state="running"] .status__text { color: var(--text); }
 
+/* Bitmiş bir çalıştırma, sürmekte olandan bir bakışta ayrılsın: kutu yeşile
+   döner ve üstünde "SONUÇ" etiketi belirir. */
+.status[data-state="done"] {
+  border-color: color-mix(in srgb, var(--ok) 45%, var(--border));
+  background: color-mix(in srgb, var(--ok) 8%, var(--surface));
+}
+
+.status[data-state="done"] .status__body::before {
+  content: "Sonuç";
+  display: block;
+  margin-bottom: 2px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--ok);
+}
+
 .status[data-state="done"] .status__dot { background: var(--ok); }
 .status[data-state="done"] .status__text { color: var(--ok); font-weight: 600; }
 .status[data-state="done"] .status__bar i { background: var(--ok); }
+
+.status[data-state="error"] {
+  border-color: color-mix(in srgb, var(--warn) 45%, var(--border));
+  background: color-mix(in srgb, var(--warn) 8%, var(--surface));
+}
 
 .status[data-state="error"] .status__dot { background: var(--warn); }
 .status[data-state="error"] .status__text { color: var(--warn); font-weight: 600; }
@@ -245,8 +201,8 @@ html[data-theme="dark"] .ico-moon { display: inline; }
   50% { opacity: .25; }
 }
 
-/* --- Toplu akışın bölüm listesi ------------------------------------------ */
-/* Durum kutucuğu o an ne yapıldığını yazar; bu liste ise dört bölümün
+/* --- Bölüm listesi ------------------------------------------------------- */
+/* Durum kutucuğu o an ne yapıldığını yazar; bu liste ise seçili bölümlerin
    tek tek nasıl bittiğini gösterir ve çalıştırma boyunca ekranda kalır. */
 
 .stages {
@@ -306,103 +262,115 @@ html[data-theme="dark"] .ico-moon { display: inline; }
 .stage[data-state="error"] .stage__dot { background: var(--warn); }
 .stage[data-state="error"] .stage__name { color: var(--warn); font-weight: 600; }
 
-/* --- Seçenekler --------------------------------------------------------- */
+/* --- Toplu haciz bölümü -------------------------------------------------- */
 
-.switch {
+/* Bilgi kutusu bu kutuya göre konumlanır. */
+.grp {
+  position: relative;
+  padding: 8px 9px 9px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+}
+
+.grp__head {
   display: flex;
   align-items: center;
-  gap: 9px;
-  cursor: pointer;
-  user-select: none;
+  gap: 5px;
+  margin: 0 0 6px 1px;
 }
 
-.switch input {
+.grp__title {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Bilgilendirme metninin tamamı bu işaretin altındadır: kutu, üzerine
+   gelindiğinde (ya da klavyeyle odaklanıldığında) açılır. */
+.info {
+  display: grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  color: var(--muted);
+  cursor: help;
+}
+
+.info:hover, .info:focus { color: var(--accent); outline: none; }
+
+/* Kutu işaretin altında değil, BÖLÜMÜN tamamına yaslanır: popup 312 piksel
+   olduğundan işarete yaslanan bir kutu sağ kenardan taşardı. Yüksekliği
+   sınırlıdır ve uzun metin kutunun kendi içinde kayar. */
+.info__panel {
   position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.switch__track {
-  flex: none;
-  position: relative;
-  width: 32px;
-  height: 18px;
+  top: 26px;
+  left: 8px;
+  right: 8px;
+  z-index: 5;
+  display: none;
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 10px 11px;
+  border: 1px solid var(--border);
   border-radius: 9px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  transition: background .15s, border-color .15s;
-}
-
-.switch__knob {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--muted);
-  transition: transform .15s, background .15s;
-}
-
-.switch input:checked + .switch__track {
-  background: var(--accent);
-  border-color: var(--accent);
-}
-
-.switch input:checked + .switch__track .switch__knob {
-  transform: translateX(14px);
-  background: var(--accent-text);
-}
-
-.switch__label {
-  font-size: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
   color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+  letter-spacing: 0;
+  text-transform: none;
+  cursor: default;
 }
 
-.switch input:checked ~ .switch__label { color: var(--text); }
+.info:hover .info__panel,
+.info:focus .info__panel,
+.info:focus-within .info__panel { display: block; }
 
-.choices {
-  display: flex;
-  gap: 7px;
-  margin-top: 10px;
-}
-
-.pill {
-  flex: 1;
-  cursor: pointer;
-}
-
-.pill input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.pill span {
+.info__panel b {
   display: block;
-  padding: 7px 4px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface-2);
-  color: var(--muted);
-  font-size: 11.5px;
-  text-align: center;
-  transition: all .15s;
+  margin-top: 8px;
+  color: var(--text);
+  font-size: 10.5px;
 }
 
-.pill input:checked + span {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
-  color: var(--accent);
-  font-weight: 600;
+.info__panel b:first-child { margin-top: 0; }
+
+.info__panel i {
+  display: block;
+  margin-top: 1px;
+  font-style: normal;
 }
 
-/* Bölüm seçeneklerinin tik kutusu */
+.grp__opts { margin-top: 8px; }
+
+/* Haciz türleri: dördü de tikli gelir, tiki kalkan atlanır. Dar popup'ta alt
+   alta dört satır yer kapladığından iki sütuna dizilir. */
+.picks {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 8px;
+}
+
+.picks .check { margin-top: 6px; }
+.picks .check:nth-child(-n+2) { margin-top: 0; }
+
+/* Ücret onayı tür tiklerinden farklı bir karardır: ince bir çizgiyle ayrılır. */
+.check--sep {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
 .check {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 7px;
   cursor: pointer;
   user-select: none;
 }
@@ -439,50 +407,41 @@ html[data-theme="dark"] .ico-moon { display: inline; }
 
 .check input:checked ~ .check__label { color: var(--text); }
 
-/* --- Yardım ------------------------------------------------------------- */
+/* --- Ana düğme ---------------------------------------------------------- */
+/* Bölümün en altındadır: önce ne yapılacağı seçilir, sonra basılır. */
+
+.start {
+  width: 100%;
+  margin-top: 10px;
+  padding: 9px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--accent);
+  color: var(--accent-text);
+  font: 600 13px/1.2 inherit;
+  letter-spacing: -.01em;
+  cursor: pointer;
+  transition: filter .15s, transform .05s;
+}
+
+.start:hover:not(:disabled) { filter: brightness(1.07); }
+.start:active:not(:disabled) { transform: translateY(1px); }
+
+.start:disabled {
+  opacity: .55;
+  cursor: default;
+  box-shadow: none;
+}
+
+/* --- Alt satır ---------------------------------------------------------- */
 
 footer { margin-top: 10px; }
-
-.help-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  width: 100%;
-  padding: 7px;
-  border: 1px solid var(--border);
-  border-radius: 9px;
-  background: transparent;
-  color: var(--muted);
-  font: 12px inherit;
-  cursor: pointer;
-  transition: color .15s, border-color .15s;
-}
-
-.help-btn:hover { color: var(--text); }
-
-.help-btn svg { transition: transform .18s; }
-.help-btn[aria-expanded="true"] svg { transform: rotate(180deg); }
-
-.help {
-  margin-top: 8px;
-  padding: 10px 11px;
-  border: 1px solid var(--border);
-  border-radius: 9px;
-  background: var(--surface);
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.help p { margin: 0; }
-.help p + p { margin-top: 8px; }
 
 /* Sürüm solda, imza sağda: iki uç simetrik dursun. */
 .foot {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 8px;
   color: var(--muted);
   font-size: 9px;
   letter-spacing: .02em;

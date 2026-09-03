@@ -31,10 +31,7 @@
     if (message?.type === 'UBH_START') {
       toPage({
         t: 'START',
-        flow: message.flow,
-        payment: message.payment,
-        sms: message.sms,
-        evrak: message.evrak,
+        types: message.types,
         paid: message.paid
       });
     }
@@ -61,7 +58,7 @@
         break;
 
       case 'DONE':
-        send({ type: 'UBH_DONE', label: message.label });
+        send({ type: 'UBH_DONE', label: message.label, detail: message.detail });
         break;
 
       case 'FAIL':
