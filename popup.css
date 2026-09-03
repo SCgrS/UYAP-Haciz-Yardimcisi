@@ -1,0 +1,501 @@
+/* UYAP Banka Haciz Yardımcısı - popup teması */
+
+:root {
+  --bg: #f4f6f8;
+  --surface: #ffffff;
+  --surface-2: #eef1f4;
+  --border: #dde2e8;
+  --text: #1c2126;
+  --muted: #62707e;
+  --accent: #2f6fe0;
+  --accent-text: #ffffff;
+  --ok: #17915f;
+  --warn: #c2410c;
+  --shadow: 0 1px 2px rgba(28, 33, 38, .08), 0 8px 20px rgba(28, 33, 38, .07);
+}
+
+html[data-theme="dark"] {
+  --bg: #14181c;
+  --surface: #1c2126;
+  --surface-2: #232a31;
+  --border: #2e373f;
+  --text: #e4e9ed;
+  --muted: #8ca0b3;
+  --accent: #4b86e8;
+  --accent-text: #0f1317;
+  --ok: #3ec98d;
+  --warn: #f0955c;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 20px rgba(0, 0, 0, .35);
+}
+
+* { box-sizing: border-box; }
+
+[hidden] { display: none !important; }
+
+body {
+  width: 312px;
+  margin: 0;
+  padding: 12px;
+  background: var(--bg);
+  color: var(--text);
+  font: 13px/1.45 "Segoe UI", system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* --- Başlık ------------------------------------------------------------- */
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 10px;
+}
+
+.head__icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  flex: none;
+}
+
+.head__title {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  font-weight: 650;
+  line-height: 1.25;
+  letter-spacing: -.01em;
+}
+
+.icon-btn {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  transition: color .15s, border-color .15s;
+}
+
+.icon-btn:hover {
+  color: var(--text);
+  border-color: var(--muted);
+}
+
+.ico-moon { display: none; }
+html[data-theme="dark"] .ico-sun { display: none; }
+html[data-theme="dark"] .ico-moon { display: inline; }
+
+/* --- Bölümler ----------------------------------------------------------- */
+/* Her haciz türü kendi başlığı, kendi düğmesi ve kendi seçenekleriyle ayrı
+   bir bölümdür. Durum kutucuğu ortaktır ve bölümlerin üstünde durur. */
+
+.grp {
+  padding: 8px 9px 9px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--surface);
+}
+
+.grp + .grp { margin-top: 7px; }
+
+.grp__title {
+  margin: 0 0 6px 1px;
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.grp__opts { margin-top: 8px; }
+
+/* Kutunun ilk seçeneği düğmeye yapışmasın diye kendi üst boşluğu alınır. */
+.grp__opts > .check:first-child { margin-top: 0; }
+
+/* Toplu bölüm en üstte durur ve tek bakışta ayırt edilsin diye çerçevesi
+   vurgu rengindedir; altındaki bölümlerle aynı iskelete oturur. */
+.grp--bulk {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+}
+
+.grp--bulk + .grp { margin-top: 10px; }
+
+.grp__note {
+  margin: 8px 1px 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+/* --- Ana düğme ---------------------------------------------------------- */
+
+.start {
+  width: 100%;
+  padding: 9px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--accent);
+  color: var(--accent-text);
+  font: 600 13px/1.2 inherit;
+  letter-spacing: -.01em;
+  cursor: pointer;
+  transition: filter .15s, transform .05s;
+}
+
+.start:hover:not(:disabled) { filter: brightness(1.07); }
+.start:active:not(:disabled) { transform: translateY(1px); }
+
+.start:disabled {
+  opacity: .55;
+  cursor: default;
+  box-shadow: none;
+}
+
+/* --- Durum kutucuğu ----------------------------------------------------- */
+
+/* Engel mesajı birkaç satır sürebildiği için nokta ortada değil, ilk satırın
+   hizasında durur. */
+.status {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 10px 11px 11px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.status__dot {
+  flex: none;
+  margin-top: 6px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.status__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.status__text {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+/* Engel hâlinde burada UYAP'ın kendi cümlesi durur; okunabilir olmalı, bu
+   yüzden soluklaştırılmaz. */
+.status__detail {
+  display: block;
+  margin-top: 3px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.status__bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--surface-2);
+}
+
+.status__bar i {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: var(--accent);
+  transition: width .3s ease;
+}
+
+.status[data-state="running"] .status__dot {
+  background: var(--accent);
+  animation: pulse 1.1s ease-in-out infinite;
+}
+
+.status[data-state="running"] .status__text { color: var(--text); }
+
+.status[data-state="done"] .status__dot { background: var(--ok); }
+.status[data-state="done"] .status__text { color: var(--ok); font-weight: 600; }
+.status[data-state="done"] .status__bar i { background: var(--ok); }
+
+.status[data-state="error"] .status__dot { background: var(--warn); }
+.status[data-state="error"] .status__text { color: var(--warn); font-weight: 600; }
+.status[data-state="error"] .status__bar i { background: var(--warn); }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .25; }
+}
+
+/* --- Toplu akışın bölüm listesi ------------------------------------------ */
+/* Durum kutucuğu o an ne yapıldığını yazar; bu liste ise dört bölümün
+   tek tek nasıl bittiğini gösterir ve çalıştırma boyunca ekranda kalır. */
+
+.stages {
+  margin: -4px 0 10px;
+  padding: 4px 0 0;
+  list-style: none;
+  border-radius: 10px;
+}
+
+.stage {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 5px 11px;
+}
+
+.stage__dot {
+  flex: none;
+  margin-top: 5px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--border);
+}
+
+.stage__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.stage__name {
+  display: block;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.stage__note {
+  display: block;
+  margin-top: 1px;
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: var(--muted);
+  opacity: .85;
+  overflow-wrap: anywhere;
+}
+
+.stage[data-state="running"] .stage__dot {
+  background: var(--accent);
+  animation: pulse 1.1s ease-in-out infinite;
+}
+
+.stage[data-state="running"] .stage__name { color: var(--text); }
+
+.stage[data-state="done"] .stage__dot { background: var(--ok); }
+.stage[data-state="done"] .stage__name { color: var(--ok); }
+
+.stage[data-state="error"] .stage__dot { background: var(--warn); }
+.stage[data-state="error"] .stage__name { color: var(--warn); font-weight: 600; }
+
+/* --- Seçenekler --------------------------------------------------------- */
+
+.switch {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.switch input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.switch__track {
+  flex: none;
+  position: relative;
+  width: 32px;
+  height: 18px;
+  border-radius: 9px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  transition: background .15s, border-color .15s;
+}
+
+.switch__knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: transform .15s, background .15s;
+}
+
+.switch input:checked + .switch__track {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.switch input:checked + .switch__track .switch__knob {
+  transform: translateX(14px);
+  background: var(--accent-text);
+}
+
+.switch__label {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.switch input:checked ~ .switch__label { color: var(--text); }
+
+.choices {
+  display: flex;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.pill {
+  flex: 1;
+  cursor: pointer;
+}
+
+.pill input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pill span {
+  display: block;
+  padding: 7px 4px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 11.5px;
+  text-align: center;
+  transition: all .15s;
+}
+
+.pill input:checked + span {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* Bölüm seçeneklerinin tik kutusu */
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 7px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.check input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.check__box {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: transparent;
+  transition: background .15s, border-color .15s, color .15s;
+}
+
+.check input:checked + .check__box {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+.check__label {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.check input:checked ~ .check__label { color: var(--text); }
+
+/* --- Yardım ------------------------------------------------------------- */
+
+footer { margin-top: 10px; }
+
+.help-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+  padding: 7px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  font: 12px inherit;
+  cursor: pointer;
+  transition: color .15s, border-color .15s;
+}
+
+.help-btn:hover { color: var(--text); }
+
+.help-btn svg { transition: transform .18s; }
+.help-btn[aria-expanded="true"] svg { transform: rotate(180deg); }
+
+.help {
+  margin-top: 8px;
+  padding: 10px 11px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.help p { margin: 0; }
+.help p + p { margin-top: 8px; }
+
+/* Sürüm solda, imza sağda: iki uç simetrik dursun. */
+.foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 9px;
+  letter-spacing: .02em;
+  opacity: .6;
+}
+
+.foot__link {
+  color: inherit;
+  text-decoration: none;
+  transition: color .15s, opacity .15s;
+}
+
+.foot__link:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}

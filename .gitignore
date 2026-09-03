@@ -1,0 +1,12 @@
+# Node (yalnız tools/make-icons.js için gerekirse)
+node_modules/
+package-lock.json
+
+# Paketlenmiş eklenti
+*.zip
+*.crx
+*.pem
+
+# Windows
+Thumbs.db
+desktop.ini

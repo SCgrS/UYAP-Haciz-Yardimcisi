@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <title>UYAP Haciz Yardımcısı</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header class="head">
+    <img class="head__icon" src="icon48.png" alt="">
+    <div class="head__title">UYAP Haciz Yardımcısı</div>
+    <button id="theme" class="icon-btn" type="button" title="Koyu / açık mod" aria-label="Koyu / açık mod">
+      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+        <path class="ico-sun" d="M12 4V2m0 20v-2m8-8h2M2 12h2m12.9-4.9 1.4-1.4M5.7 18.3l1.4-1.4m9.8 1.4 1.4 1.4M5.7 5.7 7.1 7.1"
+              fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <circle class="ico-sun" cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/>
+        <path class="ico-moon" d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"
+              fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </header>
+
+  <!-- Durum kutucuğu tüm bölümler için ortaktır: aynı anda tek bir işlem
+       çalışır, hangisi olursa olsun ilerlemesi burada görünür. -->
+  <section id="status" class="status" data-state="idle" aria-live="polite">
+    <span id="status-dot" class="status__dot"></span>
+    <span class="status__body">
+      <span id="status-text" class="status__text">Hazır</span>
+      <span id="status-detail" class="status__detail" hidden></span>
+    </span>
+    <div class="status__bar"><i id="status-fill"></i></div>
+  </section>
+
+  <!-- Toplu akışın bölüm listesi. Yalnız toplu çalıştırmada dolar: hangi
+       bölüm bitti, hangisi nerede takıldı burada satır satır görünür. -->
+  <ul id="stages" class="stages" aria-live="polite" hidden></ul>
+
+  <main>
+
+    <section class="grp grp--bulk">
+      <h2 class="grp__title">Toplu Haciz</h2>
+      <button class="start" type="button" data-flow="toplu">Toplu Haczi Hazırla</button>
+
+      <div class="grp__opts">
+        <label class="check">
+          <input type="checkbox" data-opt="toplu.paid">
+          <span class="check__box">
+            <svg viewBox="0 0 24 24" width="10" height="10" aria-hidden="true">
+              <path d="m5 12 5 5L19 7" fill="none" stroke="currentColor" stroke-width="3"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="check__label">Ücretli sorguyu onayla</span>
+        </label>
+      </div>
+
+      <p class="grp__note">
+        EGM, icra dosyası, TAKBİS ve banka hacizlerini sırayla hazırlar, sonunda
+        tek talep evrakı oluşturur. Aşağıdaki bölümlerin seçenekleri bu düğmeyi
+        etkilemez.
+      </p>
+    </section>
+
+    <section class="grp">
+      <h2 class="grp__title">Banka Haczi</h2>
+      <button class="start" type="button" data-flow="banka">Banka Haczi Hazırla</button>
+
+      <div class="grp__opts">
+        <label class="switch">
+          <input id="opt-enabled" type="checkbox">
+          <span class="switch__track"><span class="switch__knob"></span></span>
+          <span class="switch__label">Ödeme türü ve evrak türü gir</span>
+        </label>
+
+        <div id="opt-choices" class="choices" hidden>
+          <label class="pill">
+            <input type="radio" name="payment" value="vakifbank">
+            <span>Vakıfbank</span>
+          </label>
+          <label class="pill">
+            <input type="radio" name="payment" value="ebarobirlik">
+            <span>e-barobirlik kart</span>
+          </label>
+        </div>
+
+        <label id="opt-sms" class="check" hidden>
+          <input id="opt-sms-input" type="checkbox">
+          <span class="check__box">
+            <svg viewBox="0 0 24 24" width="10" height="10" aria-hidden="true">
+              <path d="m5 12 5 5L19 7" fill="none" stroke="currentColor" stroke-width="3"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="check__label">&#8220;Kendi Hesaplarım ile Öde&#8221; butonuna tıkla</span>
+        </label>
+      </div>
+    </section>
+
+    <section class="grp">
+      <h2 class="grp__title">EGM Sorgusu</h2>
+      <button class="start" type="button" data-flow="egm">EGM Haczi Hazırla</button>
+
+      <div class="grp__opts">
+        <label class="check">
+          <input type="checkbox" data-opt="egm.evrak">
+          <span class="check__box">
+            <svg viewBox="0 0 24 24" width="10" height="10" aria-hidden="true">
+              <path d="m5 12 5 5L19 7" fill="none" stroke="currentColor" stroke-width="3"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="check__label">Talep evrakını otomatik oluştur</span>
+        </label>
+
+        <label class="check">
+          <input type="checkbox" data-opt="egm.paid">
+          <span class="check__box">
+            <svg viewBox="0 0 24 24" width="10" height="10" aria-hidden="true">
+              <path d="m5 12 5 5L19 7" fill="none" stroke="currentColor" stroke-width="3"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="check__label">Ücretli sorguyu onayla</span>
+        </label>
+      </div>
+    </section>
+
+    <section class="grp">
+      <h2 class="grp__title">İcra Dosyası Sorgusu</h2>
+      <button class="start" type="button" data-flow="icra">İcra Dosyası Haczi Hazırla</button>
+
+      <div class="grp__opts">
+        <label class="check">
+          <input type="checkbox" data-opt="icra.evrak">
+          <span class="check__box">
+            <svg viewBox="0 0 24 24" width="10" height="10" aria-hidden="true">
+              <path d="m5 12 5 5L19 7" fill="none" stroke="currentColor" stroke-width="3"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="check__label">Talep evrakını otomatik oluştur</span>
+        </label>
+
+        <label class="check">
+          <input type="checkbox" data-opt="icra.paid">
+          <span class="check__box">
+            <svg viewBox="0 0 24 24" width="10" height="10" aria-hidden="true">
+              <path d="m5 12 5 5L19 7" fill="none" stroke="currentColor" stroke-width="3"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="check__label">Ücretli sorguyu onayla</span>
+        </label>
+      </div>
+    </section>
+
+    <section class="grp">
+      <h2 class="grp__title">TAKBİS Sorgusu</h2>
+      <button class="start" type="button" data-flow="takbis">TAKBİS Haczi Hazırla</button>
+
+      <div class="grp__opts">
+        <label class="check">
+          <input type="checkbox" data-opt="takbis.evrak">
+          <span class="check__box">
+            <svg viewBox="0 0 24 24" width="10" height="10" aria-hidden="true">
+              <path d="m5 12 5 5L19 7" fill="none" stroke="currentColor" stroke-width="3"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="check__label">Talep evrakını otomatik oluştur</span>
+        </label>
+
+        <label class="check">
+          <input type="checkbox" data-opt="takbis.paid">
+          <span class="check__box">
+            <svg viewBox="0 0 24 24" width="10" height="10" aria-hidden="true">
+              <path d="m5 12 5 5L19 7" fill="none" stroke="currentColor" stroke-width="3"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="check__label">Ücretli sorguyu onayla</span>
+        </label>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <button id="help-btn" class="help-btn" type="button" aria-expanded="false" aria-controls="help">
+      Nasıl kullanılır?
+      <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+        <path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <div id="help" class="help" hidden>
+      <p>
+        Kesinleşmiş bir takip dosyasını açın, borçlu bilgileri sekmesini açın,
+        bir borçlu seçin, daha sonra eklenti simgesine tıklayıp ilgili bölümün
+        düğmesine basın.
+      </p>
+      <p>
+        &#8220;Toplu Haczi Hazırla&#8221; sırayla EGM, icra dosyası, TAKBİS ve
+        banka sorgularını yapar, çıkan kayıtların hepsini haciz talebine ekler
+        ve en sonda tek talep evrakı oluşturur. Evrak, banka sorgusu
+        yapılamasa bile (ör. kurum borçlularda) oluşturulur. Ödeme türü ve
+        evrak türü girilmez. Ücretsiz sorgu hakkı bittiğinde UYAP&#8217;ın ücret kutusuna
+        yalnız o bölümdeki &#8220;Ücretli sorguyu onayla&#8221; tiki açıksa
+        basılır; tik varsayılan olarak kapalıdır. Her bölümün ne yaptığı
+        (&#8220;7 kayıt eklendi&#8221;, &#8220;Araç kaydı yok&#8221;,
+        &#8220;60 dakikada bir yapılabiliyor&#8221;) durum çubuğunun altındaki
+        listede satır satır görünür; bir bölüm takılırsa akış durmaz, sıradaki
+        bölüme geçer. Liste, dosya penceresini kapattığınızda ya da başka bir
+        dosya açtığınızda kendiliğinden temizlenir.
+      </p>
+      <p>
+        Her bölüm kendi başına çalışır. &#8220;Talep evrakını otomatik
+        oluştur&#8221; tiki kaldırılırsa o bölüm talepleri ekler ve Talep Gönder
+        ekranında durur; evrak oluşturmaz, evrak türünü seçmez.
+      </p>
+      <p>
+        Ücretsiz sorgu hakkı bittiğinde UYAP ücret onayı sorar. Eklenti bu kutuya
+        kendiliğinden dokunmaz; onaylamasını istiyorsanız o bölümdeki
+        &#8220;Ücretli sorguyu onayla&#8221; tikini işaretleyin.
+      </p>
+    </div>
+
+    <div class="foot">
+      <span id="version"></span>
+      <a class="foot__link" href="https://x.com/CgrShn" target="_blank" rel="noopener noreferrer">
+        x.com/CgrShn
+      </a>
+    </div>
+  </footer>
+
+  <script src="popup.js"></script>
+</body>
+</html>
