@@ -1,4 +1,4 @@
-UYAP Haciz Yardımcısı v2.9.3
+UYAP Haciz Yardımcısı v2.9.4
 
 NE YAPAR
 Tek düğmesi vardır: "Toplu Haczi Hazırla". Seçili borçlu için tikli bıraktığınız
@@ -144,11 +144,20 @@ kısaltılır ne de yeniden anlatılır:
   Uyarı: Bu işlem için yeterli bakiyeniz bulunmamaktadır. Lütfen Sorgu
          bakiyesi yükledikten sonra tekrar deneyiniz.
   Uyarı: Kurumlar için bu sorgu yapılamamaktadır.
+  Uyarı: Bu sorgu türü, 09:00-10:00 ve 15:00-16:00 saatleri arasında
+         yapılamamaktadır. Belirtilen saatler dışında sorgulama işlemleri
+         yapılabilir.
 
-Eklenti bu cümlelerden bazılarını (60 dakika, bakiye, limit, yetki, kurum
-borçlusu) TANIR; tanıdığında beklemeyi keser ve sıradaki bölüme geçer.
-Tanımadığı bir kutu çıkarsa da cümle aynı biçimde gösterilir, yalnız
-beklemeye biraz daha devam edilir.
+Eklenti bu cümlelerden bazılarını (60 dakika, saat penceresi, bakiye, limit,
+yetki, kurum borçlusu) TANIR; tanıdığında beklemeyi hemen keser ve sıradaki
+bölüme geçer.
+
+Tanımadığı bir kutu çıkarsa cümle yine aynı biçimde gösterilir ve arkasından
+bir tablo gelir mi diye 8 saniye daha beklenir. Uzun bekleme (40 saniye)
+yalnız SORGUNUN KENDİSİ için, yani düğmeye basıldıktan ve ücret onayından
+sonra geçerlidir. Eskiden kutu çıktıktan sonra da 40 saniye bekleniyordu:
+TAKBİS'in saat uyarısında bölüm 42 saniye asılı kalıyordu, şimdi 2 saniyede
+sıradakine geçiliyor.
 
 Ücret kutusunun cümlesi tutarı içerir ve sonuna neden geçildiği eklenir,
 çünkü buna UYAP değil eklenti karar verir:

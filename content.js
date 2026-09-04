@@ -508,6 +508,12 @@
     if (flat.includes('YETKİ')) return 'Bu sorgu için yetkiniz yok';
     if (flat.includes('KURUMLAR İÇİN')) return 'Bu sorgu kurum borçlularda yapılamıyor';
 
+    // "Bu sorgu türü, 09:00-10:00 ve 15:00-16:00 saatleri arasında
+    // yapılamamaktadır." TAKBİS'te çıkıyor. Saat penceresi kapanana kadar
+    // beklemenin anlamı yok; tanınmadığı için akış boşuna bekliyordu.
+    if (flat.includes('SAATLERİ ARASINDA') ||
+        flat.includes('SAATLER DIŞINDA')) return 'Bu sorgu şu saatlerde yapılamıyor';
+
     return '';
   }
 
@@ -1304,6 +1310,14 @@
     // çıkabildiği için birkaç tur dönülür.
     let lastMessage = '';
 
+    // Uzun bekleme yalnız SORGUNUN KENDİSİ için: ilk turda ve ücret onayından
+    // sonra sorgu yeniden çalışır, cevabı gelene kadar beklenir. Tanımadığımız
+    // bir bilgilendirme kutusundan sonra ise UYAP zaten cevabını vermiştir;
+    // arkasından bir tablo gelecekse hemen gelir. Eskiden orada da 40 saniye
+    // bekleniyordu ve TAKBİS'in saat uyarısı gibi bir kutuda akış dakikalarca
+    // asılı kalıyordu.
+    let queryRunning = true;
+
     for (let round = 0; round < 3; round++) {
       const outcome = await waitFor(() => {
         if (findHacizGrid()) return 'grid';
@@ -1311,7 +1325,7 @@
         if (findFeeDialog()) return 'fee';
         if (alertVisible()) return 'alert';
         return null;
-      }, 40000);
+      }, queryRunning ? 40000 : 8000);
 
       if (outcome === 'grid') return 'grid';
       if (outcome === 'empty') return 'empty';
@@ -1330,6 +1344,9 @@
         paidApproved = true;
         fee.confirm.click();
         await waitFor(() => !findFeeDialog(), 5000);
+
+        // Onaydan sonra sorgu baştan çalışıyor: yine uzun beklenir.
+        queryRunning = true;
         continue;
       }
 
@@ -1343,6 +1360,7 @@
       // Engel belliyse beklemenin bir şeyi değiştirmeyeceğini biliyoruz.
       if (reason) blocked(reason, message);
 
+      queryRunning = false;
       if (message) lastMessage = message;
     }
 
