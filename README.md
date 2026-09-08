@@ -1,11 +1,10 @@
 # UYAP Haciz Yardımcısı
 
-UYAP Avukat Portalı'nda, seçili borçlu için EGM, icra dosyası, TAKBİS ve banka hacizlerini
-tek düğmeyle hazırlayan Chrome eklentisi. Sorguları sırayla yapar, çıkan kayıtların hepsini
+UYAP Avukat Portalı'nda, takibin kesinleştiği bir borçlu seçildiğinde çalışır. Tercihe göre EGM, icra dosyası, TAKBİS ve banka hacizlerini tek tek veya toplu şekilde hazırlayan bir Chrome eklentisidir. Sorguları sırayla yapar, çıkan kayıtların hepsini
 haciz talebine ekler ve en sonda tek bir talep evrakı oluşturur. Talebi **göndermez**; son
-kontrol ve gönderme sizde kalır.
+kontrol, gönderme sizde kalır. Kişisel herhangi bir veri görmez, ağ isteği yapmaz, analitik ve telemetri yoktur, herhangi bir yere veri göndermez. Yalnızca buton arar. Chrome'un geçiciği belleği hariç diske veri yazmaz, geçici bellek Chrome kapanınca silinir.
 
-Eklenti bağımsız bir yardımcı araçtır; UYAP ya da Adalet Bakanlığı tarafından geliştirilmiş
+Eklenti bağımsız bir geliştirici tarafından üretilmiş, yardımcı bir araçtır; UYAP ya da Adalet Bakanlığı tarafından geliştirilmiş
 veya onaylanmış resmî bir ürün değildir.
 
 ## Ne yapar
@@ -15,7 +14,7 @@ veya onaylanmış resmî bir ürün değildir.
 - EGM'de her araç için açılan **Haciz Şerhi** penceresinde **Haciz** seçeneğini işaretler.
 - Banka sorgusundan çıkan bütün bankaları **Talep Gönder** sekmesinde tek tek seçer, tüm hesap
   türlerini işaretler, **89/1 Haciz İhbarnamesi**'ni seçip **Talep Ekle**'ye basar.
-- En sonda **Talep Evrakı Oluştur** düğmesine basar; evrak indirilir, orada durur.
+- En sonda **Talep Evrakı Oluştur** düğmesine basar; evrak indirilir, ve burada durur.
 - Hangi bölümün ne yaptığını (kaç kayıt eklendi, neden eklenmedi) canlı bir listede yazar;
   bir bölüm takılırsa durmaz, sıradaki bölüme geçer.
 - UYAP bir kutuyla engellediğinde (60 dakika sınırı, bakiye, saat penceresi, kurum borçlusu)
