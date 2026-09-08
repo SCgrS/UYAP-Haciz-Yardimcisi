@@ -169,10 +169,8 @@ indirdiğiniz klasörü de silebilirsiniz.
 
 ## Teşekkür
 
-Banka haczi bölümünün temel kurgusu — banka sorgusundan çıkan kurumların **Talep Gönder**
-sekmesinde tek tek seçilip hesap türleriyle birlikte **89/1 Haciz İhbarnamesi**'ne bağlanması —
-**Raci Yüksekbaş**'ın yazdığı koda dayanır. Bu eklentideki banka akışı, onun ortaya koyduğu
-çözümün üzerine kurulmuştur; emeği için kendisine teşekkür ederiz.
+Bu eklentideki banka haciz ekleme akışı, [Raci Çetin Yüksekbaş](https://github.com/raciyuksekbas-hub)'ın
+ortaya koyduğu çözümün üzerine kurulmuştur, kendisine teşekkür ederim.
 
 Sorunuz ya da bildirmek istediğiniz bir şey olursa: [x.com/CgrShn](https://x.com/CgrShn)
 
