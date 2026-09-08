@@ -9,7 +9,8 @@ kalır.
 Eklenti hiçbir ağ isteği yapmaz; analitik, telemetri ve uzaktan kod yükleme yoktur, hiçbir
 yere veri göndermez. Sayfada yalnızca düğme, sekme ve etiket adlarını arar; dosya numarası,
 TCKN/VKN, hesap numarası, bakiye gibi bilgileri okumaz. Diske veri yazmaz: banka adları
-Chrome'un geçici belleğinde tutulur ve iş bitince, en geç Chrome kapanınca silinir.
+Chrome'un geçici belleğinde tutulur ve iş bitince, en geç Chrome kapanınca silinir. Ayrıntısı
+[Gizlilik](#gizlilik) bölümünde.
 
 Eklenti bağımsız bir geliştirici tarafından üretilmiş, yardımcı bir araçtır; UYAP ya da
 Adalet Bakanlığı tarafından geliştirilmiş veya onaylanmış resmî bir ürün değildir.
@@ -69,75 +70,34 @@ okuna basın.
 |---|---|
 | **EGM**, **İcra dosyası**, **TAKBİS**, **Banka** | Hangi haciz türlerinin hazırlanacağı. Dördü de varsayılan olarak açıktır; tiki kaldırılan tür hiç sorgulanmaz ve listeye satırı düşmez. |
 | **Ücretli sorguyu onayla** | Ücretsiz hak bittiğinde UYAP'ın açtığı "... ücret alınacaktır" kutusunu onaylar. Varsayılan olarak kapalıdır; kapalıyken kutu **İptal** ile kapatılır ve o bölüm geçilir. |
-| **Toplu Haczi Hazırla** | Tikli türleri EGM-TNB, İcra Dosyası, TAKBİS, Banka sırasıyla hazırlar. Hiçbir tür tikli değilse "En az bir haciz türü seçin" yazar. |
+| **Toplu Haczi Hazırla** | Tikli türleri, tikleme sırasına bakmadan hep aynı sırayla hazırlar: EGM, icra dosyası, TAKBİS, banka. En sonda **Talep Evrakı Oluştur**'a basar ve evrak indirilir; hepsi tek evrakta toplanır. Talebe hiç kayıt girmediyse evrak oluşturulmaz. Hiçbir tür tikli değilse "En az bir haciz türü seçin" yazar. |
 | Bilgi işareti (**Toplu Haciz** başlığının yanı) | Üzerine gelince kısa kullanım notları açılır. |
 | Sağ üstteki güneş/ay düğmesi | Koyu / açık mod. |
 
-### Sıra
+### Sonuç
 
-Sıra tikleme sırasına göre değil, daima şöyledir:
+Çalışırken durum çubuğu o an ne yapıldığını yazar. Altında seçili her tür için bir satır durur:
+yeşil bitti, turuncu takıldı, mavi çalışıyor demektir. Satırın yanında sonucu yazar — "3 kayıt
+haciz talebine eklendi" ya da takıldıysa nedeni.
 
-1. **EGM-TNB** kartı açılır, sorgulanır, çıkan araçların hepsi haciz talebine eklenir.
-2. Aynısı **İcra Dosyası** kartı için yapılır.
-3. Aynısı **TAKBİS** kartı için yapılır.
-4. **Banka** bölümü çalışır: sorgu, **Talep Gönder** sekmesi, **Haciz Talepleri** >
-   **Banka Haczi Talebi**, bankaların işaretlenmesi, hesap türleri, **89/1 Haciz İhbarnamesi**,
-   **Talep Ekle**. Banka seçiliyse her zaman en sonda çalışır; önceki bölümlerin eklediği
-   talepler de aynı evrakta toplanır.
-5. **Talep Evrakı Oluştur** düğmesine basılır ve evrak indirilir. Hangi türler seçilirse
-   seçilsin akış bu adımla biter; talebe hiç kayıt girmediyse evrak oluşturulmaz ve durum
-   kutusu bunu yazar.
-
-Ödeme türü seçilmez, **Kendi Hesaplarım ile Ödeme**'ye basılmaz, ödeme ekranı hiç açılmaz,
-evrak türü girilmez.
-
-### Sonuç ve bölüm listesi
-
-Çalışırken durum çubuğu o an ne yapıldığını yazar. Altında seçili her tür için bir satır
-durur: yeşil bitti, turuncu takıldı, mavi çalışıyor demektir. Turuncu satırın altında nedeni
-yazar.
-
-```
-EGM            3 kayıt haciz talebine eklendi
-İcra dosyası   Uyarı: Bu işlem 60 dakikada 1 defa yapılabilmektedir.
-TAKBİS         11 kayıt haciz talebine eklendi (ücretli sorgu onaylandı)
-Banka          Uyarı: Kurumlar için bu sorgu yapılamamaktadır.
-```
-
-Talep evrakı listede yer almaz; ne olduğu durum kutusunun içinde, başlığın altında yazar.
-Her şey sorunsuz bittiyse kutu yeşile döner ve **Tamamlandı** başlığının altında
-"14 kayıt için talep evrakı oluşturuldu (EGM 3, İcra dosyası 0, TAKBİS 11, Banka 0)" gibi
-bir özet çıkar. Bir bölüm takıldıysa kutu turuncuya döner ve başlık "1 bölüm tamamlanamadı"
-olur; hazırlanan talep eksiktir, göndermeden önce bakın.
-
-Liste, çalışma bittikten sonra da ekranda kalır. Dosya penceresini kapattığınızda ya da
-başka bir dosya açtığınızda kendiliğinden temizlenir.
+İş bittiğinde kutu yeşile döner ve kaç kayıt için talep evrakı oluşturulduğunu türlere ayırarak
+özetler. Bir bölüm takıldıysa kutu turuncuya döner; hazırlanan talep eksiktir, göndermeden önce
+bakın. Liste, dosya penceresini kapatana ya da başka bir dosya açana kadar ekranda kalır.
 
 ### UYAP sorguyu engellediğinde
 
-UYAP bir sorguyu engellediğinde bunu bir kutuyla bildirir. Eklenti kutunun gövde metnini
-okur, kutuyu kapatır ve bölüm satırına başında "Uyarı:" ile aynen yazar:
+UYAP bir sorguyu engellediğinde (60 dakika sınırı, yetersiz bakiye, saat penceresi, kurum
+borçlusu, ücret onayı) bunu bir kutuyla bildirir. Eklenti kutudaki cümleyi olduğu gibi o
+bölümün satırına yazar, kutuyu kapatır ve beklemeden sıradaki bölüme geçer.
 
-```
-Uyarı: Bu işlem 60 dakikada 1 defa yapılabilmektedir.
-Uyarı: Bu işlem için yeterli bakiyeniz bulunmamaktadır. ...
-Uyarı: Kurumlar için bu sorgu yapılamamaktadır.
-Uyarı: Bu sorgu türü, 09:00-10:00 ve 15:00-16:00 saatleri arasında yapılamamaktadır. ...
-Uyarı: Bu işlem için ₺5,00 ücret alınacaktır. Bu işlemi onaylıyor musunuz?
-       (ücretli sorgu onayı kapalı)
-```
-
-60 dakika, saat penceresi, bakiye, limit, yetki ve kurum borçlusu cümlelerini tanır; tanıdığında
-beklemeyi hemen keser ve sıradaki bölüme geçer. Tanımadığı bir kutuda cümle yine gösterilir,
-arkasından tablo gelir mi diye 8 saniye daha beklenir.
-
-Borçlunun kaydı yoksa bu bir hata değildir: bölüm "Araç kaydı yok", "İcra dosyası kaydı yok"
-ya da "Taşınmaz kaydı yok" notuyla biter. Beklenen bir öğe hiç gelmezse durum çubuğunda
-"Bir şeyler ters gitti" yazar, altında nerede durulduğu belirtilir.
+Borçlunun o türde kaydı yoksa bu bir hata değildir; bölüm "Araç kaydı yok" gibi bir notla
+biter. Beklenen bir öğe hiç gelmezse durum çubuğunda "Bir şeyler ters gitti" yazar, altında
+nerede durulduğu belirtilir.
 
 ## Ne yapmaz
 
 - **Evrak Gönder**'e basmaz; talebi icra dairesine göndermez.
+- Ödeme türü seçmez, ödeme ekranını açmaz.
 - İki düğmeli hiçbir onay kutusuna kendiliğinden dokunmaz. Ücret kutusuna yalnız
   **Ücretli sorguyu onayla** açıkken basar.
 - Bir bölüm yarıda kaldığında ekranda kalan kutuyu yalnız "vazgeç" anlamına gelen düğmeyle
@@ -146,7 +106,7 @@ ya da "Taşınmaz kaydı yok" notuyla biter. Beklenen bir öğe hiç gelmezse du
 - Emin olunamayan hiçbir bankayı işaretlemez; eşleşmeyen banka olursa banka bölümü durur.
 - Sorgu sonucunun bir kısmını ekleyip kalanını atlamaz: sayfalayıcının bildirdiği kayıt
   sayısına ulaşılamazsa o bölüm hata ile durur.
-- Hukuki değerlendirme yapmaz. Gönderilecek talebin doğruluğundan siz sorumlusunuz.
+- Hukuki değerlendirme yapmaz. Gönderilecek talebin doğruluğundan talebi gönderen sorumludur.
 
 ## Gizlilik
 
@@ -154,44 +114,35 @@ Bu bölüm eklentinin gizlilik politikasıdır ve bütün sürümleri için geç
 
 Eklenti hiçbir ağ isteği yapmaz; analitik ve telemetri yoktur, geliştiriciye ya da üçüncü
 taraflara veri gitmez, hiçbir veri satılmaz ya da devredilmez. Uzaktan kod yüklemez, harici
-betik veya CDN kullanmaz. Yalnızca `https://avukat.uyap.gov.tr/*` adresinde çalışır; başka
-hiçbir sitede çalışmaz, öteki sekmelerinizi görmez.
+betik veya CDN kullanmaz. Yalnızca `https://avukat.uyap.gov.tr` sayfalarında çalışır.
 
-Sayfadan yalnız şunlar okunur:
+Sayfadan okunanlar:
 
 - düğme, sekme ve seçenek etiketleri;
-- banka sorgusu sonucundaki **No / Kurum** tablosundan banka adları, **Banka Seç** ve
-  **Hesap Seç** listelerindeki satır adları, sayfalayıcıdaki kayıt sayısı ve sayfa numaraları;
-- "... kaydı yok / bulunamadı" cümlesi çıkıp çıkmadığını anlamak için sayfa metninde yalnız
-  bu kalıp aranır;
-- UYAP'ın uyarı kutularının gövde metni (gövde boşsa başlığı). Bunlar sistem mesajlarıdır
-  (limit, ücret, bakiye, yetki).
+- banka sorgusu sonucundaki banka adları, **Banka Seç** ve **Hesap Seç** listelerindeki satır
+  adları, sayfalayıcıdaki kayıt sayısı;
+- "... kaydı yok / bulunamadı" cümlesinin çıkıp çıkmadığı;
+- UYAP'ın uyarı kutularının metni (limit, ücret, bakiye, yetki gibi sistem mesajları).
 
-Okunmayanlar: dosya numarası, icra dairesi, alacaklı/borçlu ve taraf bilgileri, TCKN/VKN,
-hesap numarası, bakiye, çerez ve oturum bilgisi. EGM, İcra Dosyası ve TAKBİS sonuç
-tablolarından plaka, ada/parsel, dosya numarası gibi hiçbir alan okunmaz; o tablolarda yalnız
-satırların ekleme düğmelerine basılır.
+Okunmayanlar:
 
-Saklananlar:
+- dosya numarası, icra dairesi, alacaklı ve borçlu bilgileri, TCKN/VKN;
+- hesap numarası, bakiye;
+- çerez ve oturum bilgisi;
+- EGM, İcra Dosyası ve TAKBİS sonuç tablolarındaki plaka, ada/parsel gibi alanlar; o tablolarda
+  yalnız satırların ekleme düğmelerine basılır.
 
-- **Banka adları** yalnız Chrome'un geçici (RAM) alanında (`chrome.storage.session`) durur,
-  diske yazılmaz. Yeni bir çalıştırmada, iş bittiğinde ya da takıldığında, dosya
-  penceresinden ayrıldığınızda, belleğe alınmasının üzerinden 10 dakika geçince ve Chrome
-  kapanınca silinir.
-- **Tercihler** (koyu/açık mod, haciz türü tikleri, ücret onayı) `chrome.storage.local`
-  içinde kalır. Dosya veya kişi verisi değildir; eklenti kaldırılınca silinir.
+Tutulanlar:
 
-İstenen izinler ve nedenleri:
-
-| İzin | Neden gerekiyor |
-|---|---|
-| `storage` | Yukarıdaki geçici bellek (banka adları) ve tercihler için. |
-| `alarms` | Banka adlarını 10 dakika sonra bellekten silen zamanlayıcı için. |
-| `scripting` | Her çalıştırmada eklentinin betiklerini açık UYAP sekmesine yüklemek için. |
-| `https://avukat.uyap.gov.tr/*` | Eklentinin tıkladığı düğmeler bu sayfadadır; başka site izni istenmez. |
-
-Sorunuz ya da bildirmek istediğiniz bir sorun olursa depodaki **Issues** sekmesinden
-yazabilirsiniz.
+- **Banka adları** yalnız Chrome'un geçici belleğinde durur, diske yazılmaz. Şunlardan biri
+  olduğunda silinir:
+  - yeni bir çalıştırma başladığında,
+  - iş bittiğinde ya da bir bölüm takıldığında,
+  - dosya penceresinden ayrıldığınızda,
+  - belleğe alınmasının üzerinden 10 dakika geçtiğinde,
+  - Chrome kapandığında.
+- **Tercihler** (koyu/açık mod, haciz türü tikleri, ücret onayı) Chrome'un eklenti deposunda,
+  bilgisayarınızda kalır. Dosya ya da kişi verisi değildir; eklenti kaldırılınca silinir.
 
 ## Kaldırma
 
@@ -212,3 +163,5 @@ indirdiğiniz klasörü de silebilirsiniz.
 - Popup'ta **Eklentiyi yenileyin** yazıyorsa Chrome hâlâ eski sürümü çalıştırıyor demektir;
   `chrome://extensions` sayfasındaki **yenile** okuna basın. Eklenti bu düzelene kadar hiçbir
   sorgu yapmaz.
+
+Sorunuz ya da bildirmek istediğiniz bir şey olursa: [x.com/CgrShn](https://x.com/CgrShn)
