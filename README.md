@@ -9,7 +9,7 @@ kalır.
 Eklenti hiçbir ağ isteği yapmaz; analitik, telemetri ve uzaktan kod yükleme yoktur, hiçbir
 yere veri göndermez. Sayfada yalnızca düğme, sekme ve etiket adlarını arar; dosya numarası,
 TCKN/VKN, hesap numarası, bakiye gibi bilgileri okumaz. Diske veri yazmaz: banka adları
-Chrome'un geçici belleğinde tutulur ve iş bitince, en geç Chrome kapanınca silinir.
+Chrome'un geçici belleğinde tutulur ve iş bitince, yeni sorgulama yapıldığında veya en geç Chrome kapanınca kalıcı olarak Chrome geçici belleğinden silinir.
 
 Eklenti bağımsız bir geliştirici tarafından üretilmiş, yardımcı bir araçtır; UYAP ya da
 Adalet Bakanlığı tarafından geliştirilmiş veya onaylanmış resmî bir ürün değildir.
