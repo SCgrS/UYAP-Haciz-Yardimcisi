@@ -45,29 +45,6 @@
     <section class="grp grp--bulk">
       <div class="grp__head">
         <h2 class="grp__title">Toplu Haciz</h2>
-
-        <!-- Bilgilendirme metninin tamamı burada durur; üzerine gelince açılır. -->
-        <span class="info" tabindex="0" role="button" aria-label="Nasıl çalışır?">
-          <svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true">
-            <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/>
-            <path d="M12 11v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            <circle cx="12" cy="7.5" r="1.2" fill="currentColor"/>
-          </svg>
-          <span class="info__panel" role="tooltip">
-            <b>Kullanım</b>
-            <i>Kesinleşmiş takip dosyasını açın, Taraf Bilgileri&#8217;nden bir
-            borçlu seçin, istenen haciz türlerini seçin, sonra düğmeye basın.</i>
-
-            <b>İşlem sürerken sayfaya dokunmayın</b>
-            <i>Sorgulama ve ekleme sürerken sayfada bir yere tıklarsanız
-            sıralamayı ve işlemleri sekteye uğratabilirsiniz.</i>
-
-            <b>Ücretli sorgu</b>
-            <i>Ücretsiz hak bittiğinde UYAP ücret onayı sorar. Eklenti bu kutuya
-            yalnız &#8220;Ücretli sorguyu onayla&#8221; tikliyken basar; tik
-            varsayılan olarak kapalıdır.</i>
-          </span>
-        </span>
       </div>
 
       <div class="grp__opts">
@@ -129,14 +106,44 @@
       <!-- Düğme bölümün en altındadır: önce ne yapılacağı seçilir, sonra basılır. -->
       <button id="start" class="start" type="button">Toplu Haczi Hazırla</button>
     </section>
+
+    <!-- Bilgilendirme metni burada durur. Üzerine gelince açılan bir kutu
+         değil, tıklanınca açılan bir bölümdür: açılıp kapanması yalnız
+         tıklamaya bağlı olduğu için imleç gezinirken kendiliğinden
+         açılıp kapanamaz. <details> kullanılır; açma/kapama, klavye ve
+         erişilebilirlik semantiği tarayıcıdan gelir. -->
+    <details class="howto">
+      <summary class="howto__head">
+        <svg class="howto__caret" viewBox="0 0 24 24" width="11" height="11" aria-hidden="true">
+          <path d="m9 6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Nasıl kullanılır?</span>
+      </summary>
+
+      <div class="howto__body">
+        <b>Kullanım</b>
+        <p>Kesinleşmiş takip dosyasını açın, Taraf Bilgileri&#8217;nden bir
+        borçlu seçin, istenen haciz türlerini seçin, sonra düğmeye basın.</p>
+
+        <b>İşlem sürerken sayfaya dokunmayın</b>
+        <p>Sorgulama ve ekleme sürerken sayfada bir yere tıklarsanız sıralamayı
+        ve işlemleri sekteye uğratabilirsiniz.</p>
+
+        <b>Ücretli sorgu</b>
+        <p>Ücretsiz hak bittiğinde UYAP ücret onayı sorar. Eklenti bu kutuya
+        yalnız &#8220;Ücretli sorguyu onayla&#8221; tikliyken basar; tik
+        varsayılan olarak kapalıdır.</p>
+      </div>
+    </details>
   </main>
 
   <footer>
     <div class="foot">
       <span id="version"></span>
-      <a class="foot__link" href="https://x.com/CgrShn" target="_blank" rel="noopener noreferrer">
-        x.com/CgrShn
-      </a>
+      <span class="foot__dev">Geliştirici:
+        <a class="foot__link" href="https://x.com/CgrShn" target="_blank" rel="noopener noreferrer">x.com/CgrShn</a>
+      </span>
     </div>
   </footer>
 

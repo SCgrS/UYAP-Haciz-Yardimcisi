@@ -53,7 +53,7 @@ body {
   display: flex;
   align-items: center;
   gap: 9px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .head__icon {
@@ -104,8 +104,8 @@ html[data-theme="dark"] .ico-moon { display: inline; }
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  margin-bottom: 10px;
-  padding: 10px 11px 11px;
+  margin-bottom: 8px;
+  padding: 9px 11px 10px;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--surface);
@@ -210,18 +210,34 @@ html[data-theme="dark"] .ico-moon { display: inline; }
 /* Durum kutucuğu o an ne yapıldığını yazar; bu liste ise seçili bölümlerin
    tek tek nasıl bittiğini gösterir ve çalıştırma boyunca ekranda kalır. */
 
+/* Yüksekliğin sınırlanması, popup’ın Chrome’daki 600 piksellik tavanını
+   aşmaması içindir. UYAP’ın kendi uyarı cümleleri uzun olabildiği için satır
+   notları iki üç satıra sarabiliyor; sınır olmasa bütün popup kaydırmalı hale
+   gelir ve düğmeler ekranın altında kalırdı. Dört satırın tek satırlık notlarla
+   kapladığı yer sınırın altındadır: olağan kullanımda çubuk hiç görünmez. */
 .stages {
-  margin: -4px 0 10px;
+  margin: -4px 0 8px;
   padding: 4px 0 0;
+  max-height: 192px;
+  overflow-y: auto;
   list-style: none;
   border-radius: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
 }
+
+.stages::-webkit-scrollbar { width: 6px; }
+.stages::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
+}
+.stages::-webkit-scrollbar-track { background: transparent; }
 
 .stage {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  padding: 5px 11px;
+  padding: 4px 11px;
 }
 
 .stage__dot {
@@ -275,7 +291,7 @@ html[data-theme="dark"] .ico-moon { display: inline; }
 .reset {
   display: block;
   width: 100%;
-  margin: 0 0 10px;
+  margin: 0 0 8px;
   padding: 7px;
   border: 1px solid var(--border);
   border-radius: 9px;
@@ -296,21 +312,19 @@ html[data-theme="dark"] .ico-moon { display: inline; }
 
 /* --- Toplu haciz bölümü -------------------------------------------------- */
 
-/* position: relative burada gizli onay kutusu girdilerini (.check input)
-   kendi satırlarında tutmak içindir. Bilgi kutusu artık buna göre değil,
-   pencereye göre konumlanır. */
+/* position: relative gizli onay kutusu girdilerini (.check input) kendi
+   satırlarında tutmak içindir. */
 .grp {
   position: relative;
-  padding: 8px 9px 9px;
+  padding: 7px 9px 8px;
   border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
   border-radius: 11px;
   background: color-mix(in srgb, var(--accent) 6%, var(--surface));
 }
 
+/* Bilgi işareti kaldırıldıktan sonra başlıktan başka çocuğu kalmadı;
+   hizalayacak ikinci öğe olmadığı için yalnız boşluğu taşır. */
 .grp__head {
-  display: flex;
-  align-items: center;
-  gap: 5px;
   margin: 0 0 6px 1px;
 }
 
@@ -324,103 +338,7 @@ html[data-theme="dark"] .ico-moon { display: inline; }
   color: var(--muted);
 }
 
-/* Bilgilendirme metninin tamamı bu işaretin altındadır: kutu, üzerine
-   gelindiğinde (ya da klavyeyle odaklanıldığında) açılır. */
-/* İşaretin kendisi 14 piksel; imleçle yakalaması güç ve kutunun bir anlık
-   hover kaybıyla kapanmasını kolaylaştırıyordu. Görünmez bir halka hedefi
-   26 piksele çıkarır. position: relative halkanın işarete göre konumlanması
-   içindir; sabit konumlu bilgi kutusunu etkilemez. */
-.info {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 14px;
-  height: 14px;
-  color: var(--muted);
-  cursor: help;
-}
-
-.info::before {
-  content: "";
-  position: absolute;
-  inset: -6px;
-}
-
-.info:hover, .info:focus { color: var(--accent); outline: none; }
-
-/* Kutu işaretin altında değil, POPUP’ın tamamına yaslanır: 312 piksellik bir
-   pencerede işarete yaslanan bir kutu sağ kenardan taşardı.
-
-   Konumlandırma position:fixed iledir ve bu bir üslup tercihi değil, ölçülmüş
-   bir hatanın çaresidir: kutu position:absolute iken belgenin kaydırılabilir
-   alanını uzatıyordu. Sonuç listesi dolduktan sonra belge Chrome’un 600
-   piksellik popup sınırını aşıyor, dikey kaydırma çubuğu çıkıyor, çubuk
-   pencereyi genişletince imleç işaretin üstünden kayıyor, kutu kapanıyor,
-   pencere daralıyor ve işaret imlecin altına geri geliyordu. Bu açıl-kapan
-   döngüsü saniyede onlarca kez tekrarlanıp popup’ı titretiyordu. Sabit
-   konumlu bir kutu kaydırma alanını hiç büyütmez, döngü de kurulamaz.
-
-   Yükseklik sınırı ve iç kaydırma yoktur: metin kutuya sığacak kadar kısadır.
-   Dikey yeri popup.js’te, işaretin o anki konumuna göre hesaplanır.
-
-   DİKKAT: bu kutunun ÜST öğelerinden (.info, .grp__head, .grp, main, body)
-   herhangi birine transform, filter, backdrop-filter, will-change, perspective
-   ya da contain eklenirse sabit konum sessizce o öğeye göre hesaplanmaya
-   başlar; kutu yeniden belgeyi uzatır ve titreme aynen geri gelir. Bu
-   özellikler düğmelerde kullanılıyor (.start:active, .reset:active), o yüzden
-   uzak bir ihtimal değil. Üst öğelere eklemeyin. */
-.info__panel {
-  position: fixed;
-  left: 20px;
-  right: 20px;
-  z-index: 5;
-  display: none;
-  padding: 10px 11px;
-  border: 1px solid var(--border);
-  border-radius: 9px;
-  background: var(--surface);
-  box-shadow: var(--shadow);
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 1.45;
-  letter-spacing: 0;
-  text-transform: none;
-  cursor: default;
-}
-
-/* İmleç işaretten kutuya geçerken aradaki boşlukta kutudan çıkmış sayılmasın:
-   görünmez bir köprü boşluğu kapatır. Kutu yukarı açıldığında köprü de altta
-   olmalıdır. */
-.info__panel::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: -8px;
-  height: 8px;
-}
-
-.info__panel--up::before {
-  top: auto;
-  bottom: -8px;
-}
-
-.info__panel b {
-  display: block;
-  margin-top: 8px;
-  color: var(--text);
-  font-size: 10.5px;
-}
-
-.info__panel b:first-child { margin-top: 0; }
-
-.info__panel i {
-  display: block;
-  margin-top: 1px;
-  font-style: normal;
-}
-
-.grp__opts { margin-top: 8px; }
+.grp__opts { margin-top: 7px; }
 
 /* Haciz türleri: dördü de tikli gelir, tiki kalkan atlanır. Dar popup'ta alt
    alta dört satır yer kapladığından iki sütuna dizilir. */
@@ -430,13 +348,13 @@ html[data-theme="dark"] .ico-moon { display: inline; }
   column-gap: 8px;
 }
 
-.picks .check { margin-top: 6px; }
+.picks .check { margin-top: 5px; }
 .picks .check:nth-child(-n+2) { margin-top: 0; }
 
 /* Ücret onayı tür tiklerinden farklı bir karardır: ince bir çizgiyle ayrılır. */
 .check--sep {
-  margin-top: 8px;
-  padding-top: 8px;
+  margin-top: 7px;
+  padding-top: 7px;
   border-top: 1px solid var(--border);
 }
 
@@ -485,8 +403,8 @@ html[data-theme="dark"] .ico-moon { display: inline; }
 
 .start {
   width: 100%;
-  margin-top: 10px;
-  padding: 9px;
+  margin-top: 8px;
+  padding: 8px;
   border: 0;
   border-radius: 9px;
   background: var(--accent);
@@ -506,11 +424,84 @@ html[data-theme="dark"] .ico-moon { display: inline; }
   box-shadow: none;
 }
 
+/* --- Nasıl kullanılır --------------------------------------------------- */
+/* Bilgilendirme metni artık üzerine gelince açılan bir kutuda değil, tıklanınca
+   açılan bir bölümde durur. Bölüm sayfa akışının içindedir: açılınca popup
+   uzar, hiçbir şeyin üstünü örtmez ve imleç gezinirken kendiliğinden açılıp
+   kapanamaz. */
+
+.howto {
+  margin-top: 6px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.howto__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  /* Üçgen işareti asıl kaldıran, yukarıdaki display: flex’tir: <summary>
+     varsayılan olarak list-item’dır ve üçgen o kutudan gelir. Bu satır
+     güvencedir: display bir gün list-item’a dönerse üçgen yine çıkmasın. */
+  list-style: none;
+  transition: color .15s, background .15s;
+
+  /* Üst köşeler kabın iç yuvarlatmasıyla (11px kenarlık - 1px) aynı olsun:
+     hem imleç üstündeyken arka plan düzgün yuvarlanır hem de odak halkası
+     .howto üzerindeki overflow: hidden kırpmasına takılmaz. */
+  border-radius: 10px 10px 0 0;
+}
+
+.howto__head:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.howto__head:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -3px;
+}
+
+.howto__caret {
+  flex: none;
+  color: var(--muted);
+  transition: transform .15s ease;
+}
+
+.howto[open] .howto__head { color: var(--text); }
+.howto[open] .howto__caret { transform: rotate(90deg); }
+
+.howto__body {
+  padding: 2px 10px 10px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.howto__body b {
+  display: block;
+  margin-top: 8px;
+  color: var(--text);
+  font-size: 10.5px;
+}
+
+.howto__body b:first-child { margin-top: 0; }
+
+.howto__body p { margin: 1px 0 0; }
+
 /* --- Alt satır ---------------------------------------------------------- */
 
-footer { margin-top: 10px; }
+footer { margin-top: 8px; }
 
-/* Sürüm solda, imza sağda: iki uç simetrik dursun. */
+/* Sürüm solda, geliştirici sağda: iki uç simetrik dursun. */
 .foot {
   display: flex;
   align-items: center;
@@ -520,6 +511,9 @@ footer { margin-top: 10px; }
   letter-spacing: .02em;
   opacity: .6;
 }
+
+/* “Geliştirici: x.com/CgrShn” tek satırda kalsın. */
+.foot__dev { white-space: nowrap; }
 
 .foot__link {
   color: inherit;

@@ -72,7 +72,7 @@ okuna basın.
 | **Ücretli sorguyu onayla** | Ücretsiz hak bittiğinde UYAP'ın açtığı "... ücret alınacaktır" kutusunu onaylar. Varsayılan olarak kapalıdır; kapalıyken kutu **İptal** ile kapatılır ve o bölüm geçilir. |
 | **Toplu Haczi Hazırla** | Tikli türleri, tikleme sırasına bakmadan hep aynı sırayla hazırlar: EGM, icra dosyası, TAKBİS, banka. En sonda **Talep Evrakı Oluştur**'a basar ve evrak indirilir; hepsi tek evrakta toplanır. Talebe hiç kayıt girmediyse evrak oluşturulmaz. Hiçbir tür tikli değilse "En az bir haciz türü seçin" yazar. |
 | **Yeni Sorgu Yap** | Yalnız bir çalıştırma bittiğinde görünür. Ekranda duran sonucu ve tür satırlarını kaldırıp durumu **Hazır**'a döndürür; popup'ı kapatıp açmadan yeni bir sorgu yapılabilir. Sayfada yapılmış bir işi geri almaz, yalnız ekranı temizler. |
-| Bilgi işareti (**Toplu Haciz** başlığının yanı) | Üzerine gelince kısa kullanım notları açılır. |
+| **Nasıl kullanılır?** (Toplu Haciz bölümünün altı) | Tıklayınca kısa kullanım notları açılır, yeniden tıklayınca kapanır. |
 | Sağ üstteki güneş/ay düğmesi | Koyu / açık mod. |
 
 ### Sonuç

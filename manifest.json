@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "UYAP Haciz Yardımcısı",
-  "version": "2.10.0",
+  "version": "2.11.0",
   "description": "Seçili borçlu için EGM, icra dosyası, TAKBİS ve banka hacizlerini tek tuşla, toplu olarak hazırlar. Resmî bir UYAP ürünü değildir.",
   "permissions": [
     "storage",
