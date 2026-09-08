@@ -167,6 +167,13 @@ indirdiğiniz klasörü de silebilirsiniz.
   `chrome://extensions` sayfasındaki **yenile** okuna basın. Eklenti bu düzelene kadar hiçbir
   sorgu yapmaz.
 
+## Teşekkür
+
+Banka haczi bölümünün temel kurgusu — banka sorgusundan çıkan kurumların **Talep Gönder**
+sekmesinde tek tek seçilip hesap türleriyle birlikte **89/1 Haciz İhbarnamesi**'ne bağlanması —
+**Raci Yüksekbaş**'ın yazdığı koda dayanır. Bu eklentideki banka akışı, onun ortaya koyduğu
+çözümün üzerine kurulmuştur; emeği için kendisine teşekkür ederiz.
+
 Sorunuz ya da bildirmek istediğiniz bir şey olursa: [x.com/CgrShn](https://x.com/CgrShn)
 
 Lisans: MIT. Ayrıntılar için [LICENSE](LICENSE) dosyasına bakınız.
