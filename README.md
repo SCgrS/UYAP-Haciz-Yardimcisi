@@ -31,42 +31,33 @@ Adalet Bakanlığı tarafından geliştirilmiş veya onaylanmış resmî bir ür
 
 ## Kurulum
 
-### Chrome Web Mağazası'ndan (önerilen)
+### [Chrome Web Mağazası'ndan ekle](CHROME_MAGAZA_BAGLANTISI)
 
-**[UYAP Haciz Yardımcısı'nı Chrome'a ekle](CHROME_MAGAZA_BAGLANTISI)** — açılan sayfada
-**Chrome'a ekle**, sonra **Uzantı ekle** düğmesine basın. Chrome 102 ve üzeri (ya da Edge gibi
-Chromium tabanlı bir tarayıcı) gerekir, yönetici hakkı gerekmez.
+1. Bağlantıya tıklayın, açılan sayfada **Chrome'a ekle**'ye basın.
+2. Çıkan küçük pencerede **Uzantı ekle**'ye basın.
+3. Adres çubuğunun sağındaki **yapboz parçası** simgesine tıklayıp listede eklentinin yanındaki
+   **raptiye** simgesine basın; simge araç çubuğuna sabitlenir. Eklenti yalnız simgesine
+   basınca çalıştığı için sabitlemek gerekir.
 
-Kurulumdan sonra araç çubuğundaki **Uzantılar** (yapboz) simgesine tıklayıp
-**UYAP Haciz Yardımcısı**'nın yanındaki raptiyeye basın; simge çubukta kalır.
+Üyelik, e-posta ya da ücret istemez. Kurulumdan sonra yapılacak bir ayar yoktur: dört haciz
+türü de tikli, ücretli sorgu onayı kapalı başlar.
 
-Mağazadan kurulan eklenti kendini günceller, ayrıca bir şey yapmanız gerekmez.
+### Kaynak koddan
 
-### Kaynak koddan (geliştirici modu)
+1. Bu depoyu indirin: sağ üstteki **Code > Download ZIP**, sonra dosyayı kalıcı bir klasöre
+   çıkarın. Chrome eklentiyi bu klasörden çalıştırır; klasör silinirse eklenti durur.
+2. Chrome'da adres çubuğuna `chrome://extensions` yazıp Enter'a basın.
+3. Sağ üstteki **Geliştirici modu** anahtarını açın.
+4. **Paketlenmemiş öğe yükle**'ye basıp çıkardığınız klasörü seçin.
 
-Mağazayı kullanmak istemiyorsanız eklentiyi doğrudan bu depodan da yükleyebilirsiniz:
+### Güncelleme
 
-1. [github.com/SCgrS/UYAP-Haciz-Yardimcisi](https://github.com/SCgrS/UYAP-Haciz-Yardimcisi)
-   sayfasında yeşil **Code** düğmesine, açılan menüde **Download ZIP**'e tıklayın.
-2. İndirilen ZIP'i açın ve içindeki klasörü kalıcı bir yere koyun (ör. `C:\projeler`).
-   Chrome eklentiyi bu klasörden çalıştırır; klasör silinir ya da taşınırsa eklenti durur.
-3. Chrome'da adres çubuğuna `chrome://extensions` yazıp Enter'a basın.
-4. Sağ üstteki **Geliştirici modu** anahtarını açın.
-5. Sol üstte beliren **Paketlenmemiş öğe yükle** düğmesine basın ve `manifest.json`
-   dosyasının bulunduğu klasörü seçin.
-6. Araç çubuğundaki **Uzantılar** (yapboz) simgesine tıklayıp **UYAP Haciz Yardımcısı**'nın
-   yanındaki raptiyeye basın; simge çubukta kalır.
+Mağazadan kurduysanız Chrome yeni sürümü kendisi yükler. Kaynak koddan kurduysanız yeni
+dosyaları aynı klasöre alıp `chrome://extensions` sayfasında eklentinin kartındaki **yenile**
+okuna basın.
 
-Bu şekilde kurulan eklenti kendini güncellemez. Yeni ZIP'i indirip aynı klasörün içeriğini
-değiştirin, sonra `chrome://extensions` sayfasında eklentinin kartındaki **yenile** (dairesel
-ok) düğmesine basın. Açık UYAP sekmesini yenilemeniz gerekmez; eklenti her çalıştırmada
-betiklerini sayfaya yeniden yükler.
-
-> Popup'ta **Eklentiyi yenileyin** yazıyorsa Chrome arka planda hâlâ eski sürümü çalıştırıyor
-> demektir. Aynı yenile düğmesine basın; eklenti o düzeltilene kadar hiçbir sorgu yapmaz.
-
-Eklenti diske hiçbir şey yazmaz, kayıt defterine dokunmaz, kısayol eklemez. Tercihleri
-Chrome'un kendi eklenti deposunda durur ve eklentiyle birlikte silinir.
+> Popup'ta **Eklentiyi yenileyin** yazıyorsa Chrome hâlâ eski sürümü çalıştırıyor demektir;
+> aynı yenile okuna basın. Eklenti bu düzelene kadar hiçbir sorgu yapmaz.
 
 ## Kullanım
 
