@@ -9,8 +9,7 @@ kalır.
 Eklenti hiçbir ağ isteği yapmaz; analitik, telemetri ve uzaktan kod yükleme yoktur, hiçbir
 yere veri göndermez. Sayfada yalnızca düğme, sekme ve etiket adlarını arar; dosya numarası,
 TCKN/VKN, hesap numarası, bakiye gibi bilgileri okumaz. Diske veri yazmaz: banka adları
-Chrome'un geçici belleğinde tutulur ve iş bitince, en geç Chrome kapanınca silinir. Ayrıntısı
-[Gizlilik](#gizlilik) bölümünde.
+Chrome'un geçici belleğinde tutulur ve iş bitince, en geç Chrome kapanınca silinir.
 
 Eklenti bağımsız bir geliştirici tarafından üretilmiş, yardımcı bir araçtır; UYAP ya da
 Adalet Bakanlığı tarafından geliştirilmiş veya onaylanmış resmî bir ürün değildir.
@@ -70,7 +69,7 @@ okuna basın.
 |---|---|
 | **EGM**, **İcra dosyası**, **TAKBİS**, **Banka** | Hangi haciz türlerinin hazırlanacağı. Dördü de varsayılan olarak açıktır; tiki kaldırılan tür hiç sorgulanmaz ve listeye satırı düşmez. |
 | **Ücretli sorguyu onayla** | Ücretsiz hak bittiğinde UYAP'ın açtığı "... ücret alınacaktır" kutusunu onaylar. Varsayılan olarak kapalıdır; kapalıyken kutu **İptal** ile kapatılır ve o bölüm geçilir. |
-| **Toplu Haczi Hazırla** | Tikli türleri aşağıdaki sırayla hazırlar. Hiçbir tür tikli değilse "En az bir haciz türü seçin" yazar. |
+| **Toplu Haczi Hazırla** | Tikli türleri EGM-TNB, İcra Dosyası, TAKBİS, Banka sırasıyla hazırlar. Hiçbir tür tikli değilse "En az bir haciz türü seçin" yazar. |
 | Bilgi işareti (**Toplu Haciz** başlığının yanı) | Üzerine gelince kısa kullanım notları açılır. |
 | Sağ üstteki güneş/ay düğmesi | Koyu / açık mod. |
 
