@@ -56,9 +56,6 @@ Mağazadan kurduysanız Chrome yeni sürümü kendisi yükler. Kaynak koddan kur
 dosyaları aynı klasöre alıp `chrome://extensions` sayfasında eklentinin kartındaki **yenile**
 okuna basın.
 
-> Popup'ta **Eklentiyi yenileyin** yazıyorsa Chrome hâlâ eski sürümü çalıştırıyor demektir;
-> aynı yenile okuna basın. Eklenti bu düzelene kadar hiçbir sorgu yapmaz.
-
 ## Kullanım
 
 1. UYAP Avukat Portalı'nda kesinleşmiş bir takip dosyasını açın.
@@ -213,3 +210,6 @@ indirdiğiniz klasörü de silebilirsiniz.
 - Sayfa 10 dakika boyunca ilerleme bildirmezse popup "Bir şeyler ters gitti" der ve düğme
   yeniden açılır.
 - Eklenti simgesine UYAP dışında bir sekmede basılırsa iş başlamaz.
+- Popup'ta **Eklentiyi yenileyin** yazıyorsa Chrome hâlâ eski sürümü çalıştırıyor demektir;
+  `chrome://extensions` sayfasındaki **yenile** okuna basın. Eklenti bu düzelene kadar hiçbir
+  sorgu yapmaz.
