@@ -297,7 +297,11 @@ html[data-theme="dark"] .ico-moon { display: inline; }
   border-radius: 9px;
   background: var(--surface);
   color: var(--muted);
-  font: 600 11.5px/1.2 inherit;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.2;
+  letter-spacing: -.01em;
   cursor: pointer;
   transition: color .15s, border-color .15s, background .15s;
 }
@@ -409,7 +413,10 @@ html[data-theme="dark"] .ico-moon { display: inline; }
   border-radius: 9px;
   background: var(--accent);
   color: var(--accent-text);
-  font: 600 13px/1.2 inherit;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.2;
   letter-spacing: -.01em;
   cursor: pointer;
   transition: filter .15s, transform .05s;
