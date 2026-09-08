@@ -172,6 +172,8 @@ indirdiğiniz klasörü de silebilirsiniz.
 Bu eklentideki banka haciz ekleme akışı, Raci Çetin Yüksekbaş'ın ortaya koyduğu çözümün
 üzerine kurulmuştur, kendisine teşekkür ederim.
 
+---
+
 Sorunuz ya da bildirmek istediğiniz bir şey olursa: [x.com/CgrShn](https://x.com/CgrShn)
 
 Lisans: MIT. Ayrıntılar için [LICENSE](LICENSE) dosyasına bakınız.
