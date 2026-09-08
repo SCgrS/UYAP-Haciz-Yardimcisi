@@ -160,8 +160,12 @@ indirdiğiniz klasörü de silebilirsiniz.
 - Sayfa 10 dakika boyunca ilerleme bildirmezse popup "Bir şeyler ters gitti" der ve düğme
   yeniden açılır.
 - Eklenti simgesine UYAP dışında bir sekmede basılırsa iş başlamaz.
+- Eklenti yalnızca simgeye bastığınız sekmede çalışır; arkada duran başka bir UYAP
+  sekmesine dokunmaz. Aynı anda iki dosyada birden çalıştırmayın.
 - Popup'ta **Eklentiyi yenileyin** yazıyorsa Chrome hâlâ eski sürümü çalıştırıyor demektir;
   `chrome://extensions` sayfasındaki **yenile** okuna basın. Eklenti bu düzelene kadar hiçbir
   sorgu yapmaz.
 
 Sorunuz ya da bildirmek istediğiniz bir şey olursa: [x.com/CgrShn](https://x.com/CgrShn)
+
+Lisans: MIT. Ayrıntılar için [LICENSE](LICENSE) dosyasına bakınız.
