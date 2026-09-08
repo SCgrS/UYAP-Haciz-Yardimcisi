@@ -36,6 +36,11 @@
        kutucuğunun altına yazılır. -->
   <ul id="stages" class="stages" aria-live="polite" hidden></ul>
 
+  <!-- Biten bir çalıştırmanın özeti ekranda kalır; yeni bir işe başlamak için
+       popup’ı kapatıp açmak gerekiyordu. Bu düğme YALNIZ çalıştırma bittiğinde
+       görünür ve ekranı “Hazır” durumuna döndürür. -->
+  <button id="reset" class="reset" type="button" hidden>Yeni Sorgu Yap</button>
+
   <main>
     <section class="grp grp--bulk">
       <div class="grp__head">
@@ -49,14 +54,9 @@
             <circle cx="12" cy="7.5" r="1.2" fill="currentColor"/>
           </svg>
           <span class="info__panel" role="tooltip">
-            <b>Ne yapar?</b>
-            <i>Seçili borçlu için tikli haciz türlerini sırayla sorgular, çıkan
-            kayıtların hepsini haciz talebine ekler ve en sonda tek talep evrakı
-            oluşturur.</i>
-
             <b>Kullanım</b>
             <i>Kesinleşmiş takip dosyasını açın, Taraf Bilgileri&#8217;nden bir
-            borçlu seçin, sonra düğmeye basın.</i>
+            borçlu seçin, istenen haciz türlerini seçin, sonra düğmeye basın.</i>
 
             <b>İşlem sürerken sayfaya dokunmayın</b>
             <i>Sorgulama ve ekleme sürerken sayfada bir yere tıklarsanız

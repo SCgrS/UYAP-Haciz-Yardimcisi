@@ -32,8 +32,13 @@ html[data-theme="dark"] {
 
 [hidden] { display: none !important; }
 
+/* max-width kalabalık bir sonuç listesi içindir. Genişlik yalnız 312 piksele
+   sabitken, içerik uzayıp dikey kaydırma çubuğu çıktığında gövde pencereye
+   sığmıyor ve alta bir de yatay kaydırma çubuğu ekleniyordu. max-width ile
+   gövde çubuğun bıraktığı yere çekilir; ölçüldü, yatay çubuk hiç çıkmıyor. */
 body {
   width: 312px;
+  max-width: 100%;
   margin: 0;
   padding: 12px;
   background: var(--bg);
@@ -262,9 +267,38 @@ html[data-theme="dark"] .ico-moon { display: inline; }
 .stage[data-state="error"] .stage__dot { background: var(--warn); }
 .stage[data-state="error"] .stage__name { color: var(--warn); font-weight: 600; }
 
+/* --- Yeni sorgu düğmesi -------------------------------------------------- */
+/* Biten bir çalıştırmanın özetini kaldırıp ekranı “Hazır”a döndürür. Yalnız
+   çalıştırma bittiğinde görünür; ana düğmeyle yarışmasın diye ikincil
+   görünümdedir. */
+
+.reset {
+  display: block;
+  width: 100%;
+  margin: 0 0 10px;
+  padding: 7px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--muted);
+  font: 600 11.5px/1.2 inherit;
+  cursor: pointer;
+  transition: color .15s, border-color .15s, background .15s;
+}
+
+.reset:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+}
+
+.reset:active { transform: translateY(1px); }
+
 /* --- Toplu haciz bölümü -------------------------------------------------- */
 
-/* Bilgi kutusu bu kutuya göre konumlanır. */
+/* position: relative burada gizli onay kutusu girdilerini (.check input)
+   kendi satırlarında tutmak içindir. Bilgi kutusu artık buna göre değil,
+   pencereye göre konumlanır. */
 .grp {
   position: relative;
   padding: 8px 9px 9px;
@@ -292,7 +326,12 @@ html[data-theme="dark"] .ico-moon { display: inline; }
 
 /* Bilgilendirme metninin tamamı bu işaretin altındadır: kutu, üzerine
    gelindiğinde (ya da klavyeyle odaklanıldığında) açılır. */
+/* İşaretin kendisi 14 piksel; imleçle yakalaması güç ve kutunun bir anlık
+   hover kaybıyla kapanmasını kolaylaştırıyordu. Görünmez bir halka hedefi
+   26 piksele çıkarır. position: relative halkanın işarete göre konumlanması
+   içindir; sabit konumlu bilgi kutusunu etkilemez. */
 .info {
+  position: relative;
   display: grid;
   place-items: center;
   width: 14px;
@@ -301,20 +340,41 @@ html[data-theme="dark"] .ico-moon { display: inline; }
   cursor: help;
 }
 
+.info::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+}
+
 .info:hover, .info:focus { color: var(--accent); outline: none; }
 
-/* Kutu işaretin altında değil, BÖLÜMÜN tamamına yaslanır: popup 312 piksel
-   olduğundan işarete yaslanan bir kutu sağ kenardan taşardı. Yüksekliği
-   sınırlıdır ve uzun metin kutunun kendi içinde kayar. */
+/* Kutu işaretin altında değil, POPUP’ın tamamına yaslanır: 312 piksellik bir
+   pencerede işarete yaslanan bir kutu sağ kenardan taşardı.
+
+   Konumlandırma position:fixed iledir ve bu bir üslup tercihi değil, ölçülmüş
+   bir hatanın çaresidir: kutu position:absolute iken belgenin kaydırılabilir
+   alanını uzatıyordu. Sonuç listesi dolduktan sonra belge Chrome’un 600
+   piksellik popup sınırını aşıyor, dikey kaydırma çubuğu çıkıyor, çubuk
+   pencereyi genişletince imleç işaretin üstünden kayıyor, kutu kapanıyor,
+   pencere daralıyor ve işaret imlecin altına geri geliyordu. Bu açıl-kapan
+   döngüsü saniyede onlarca kez tekrarlanıp popup’ı titretiyordu. Sabit
+   konumlu bir kutu kaydırma alanını hiç büyütmez, döngü de kurulamaz.
+
+   Yükseklik sınırı ve iç kaydırma yoktur: metin kutuya sığacak kadar kısadır.
+   Dikey yeri popup.js’te, işaretin o anki konumuna göre hesaplanır.
+
+   DİKKAT: bu kutunun ÜST öğelerinden (.info, .grp__head, .grp, main, body)
+   herhangi birine transform, filter, backdrop-filter, will-change, perspective
+   ya da contain eklenirse sabit konum sessizce o öğeye göre hesaplanmaya
+   başlar; kutu yeniden belgeyi uzatır ve titreme aynen geri gelir. Bu
+   özellikler düğmelerde kullanılıyor (.start:active, .reset:active), o yüzden
+   uzak bir ihtimal değil. Üst öğelere eklemeyin. */
 .info__panel {
-  position: absolute;
-  top: 26px;
-  left: 8px;
-  right: 8px;
+  position: fixed;
+  left: 20px;
+  right: 20px;
   z-index: 5;
   display: none;
-  max-height: 300px;
-  overflow-y: auto;
   padding: 10px 11px;
   border: 1px solid var(--border);
   border-radius: 9px;
@@ -328,9 +388,22 @@ html[data-theme="dark"] .ico-moon { display: inline; }
   cursor: default;
 }
 
-.info:hover .info__panel,
-.info:focus .info__panel,
-.info:focus-within .info__panel { display: block; }
+/* İmleç işaretten kutuya geçerken aradaki boşlukta kutudan çıkmış sayılmasın:
+   görünmez bir köprü boşluğu kapatır. Kutu yukarı açıldığında köprü de altta
+   olmalıdır. */
+.info__panel::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -8px;
+  height: 8px;
+}
+
+.info__panel--up::before {
+  top: auto;
+  bottom: -8px;
+}
 
 .info__panel b {
   display: block;

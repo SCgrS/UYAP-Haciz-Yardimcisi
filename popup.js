@@ -31,6 +31,9 @@ const RUNNING_HINT = 'İşlem sürerken sayfada bir yere tıklamayın; ' +
 const el = {
   theme: document.getElementById('theme'),
   start: document.getElementById('start'),
+  reset: document.getElementById('reset'),
+  info: document.querySelector('.info'),
+  infoPanel: document.querySelector('.info__panel'),
   status: document.getElementById('status'),
   statusText: document.getElementById('status-text'),
   statusDetail: document.getElementById('status-detail'),
@@ -78,6 +81,100 @@ async function loadPrefs() {
   }
   applyPrefs();
 }
+
+// --- Bilgi kutusu -----------------------------------------------------------
+//
+// Kutu CSS’teki :hover ile değil buradan açılır. Sabit konumlu (position:
+// fixed) olduğu için yerini kendisi bilemez: dikey konumu, işaretin o anki
+// yerine göre burada hesaplanır. Aşağıda yer kalmadıysa kutu işaretin üstüne
+// alınır; böylece popup’ın dışına taşıp kırpılmaz.
+//
+// Kapanış birkaç salise geciktirilir: imleç işaretten kutuya geçerken
+// aradaki boşlukta kutu bir an “terk edilmiş” sayılıyordu.
+
+const INFO_GAP = 6;          // işaret ile kutu arasındaki boşluk
+const INFO_EDGE = 8;         // kutunun popup kenarına en fazla yaklaşacağı yer
+const INFO_CLOSE_MS = 140;
+
+let infoOpen = false;
+let infoTimer = 0;
+
+function placeInfo() {
+  const panel = el.infoPanel;
+
+  // Yükseklik ancak çizildikten sonra ölçülebilir. Ölçüm sırasında kutu
+  // görünmez tutulur ki yanlış yerde bir an parlamasın.
+  const hidden = panel.style.display !== 'block';
+  if (hidden) {
+    panel.style.visibility = 'hidden';
+    panel.style.display = 'block';
+  }
+
+  panel.classList.remove('info__panel--up');
+
+  const icon = el.info.getBoundingClientRect();
+  const height = panel.offsetHeight;
+  // clientHeight kullanılır, innerHeight değil: innerHeight varsa yatay
+  // kaydırma çubuğunu da sayar ve “aşağıda yer var” diyip kutuyu kırpılacak
+  // bir yere açabilir.
+  const viewport = document.documentElement.clientHeight;
+  const roomBelow = viewport - icon.bottom - INFO_GAP - INFO_EDGE;
+
+  let top;
+  if (height <= roomBelow) {
+    top = icon.bottom + INFO_GAP;
+  } else {
+    // Aşağıda yer yok: kutu işaretin üstüne alınır.
+    top = icon.top - INFO_GAP - height;
+    panel.classList.add('info__panel--up');
+
+    // Yukarıda da yer yoksa kutu pencereye sığdırılır ve olabildiğince
+    // aşağıda tutulur: hiç değilse başlık satırı görünür kalsın.
+    if (top < INFO_EDGE) {
+      top = Math.max(INFO_EDGE, viewport - height - INFO_EDGE);
+    }
+  }
+
+  panel.style.top = `${Math.round(top)}px`;
+  panel.style.visibility = '';
+}
+
+function showInfo() {
+  clearTimeout(infoTimer);
+  if (infoOpen) return;
+  infoOpen = true;
+  placeInfo();
+}
+
+function hideInfo() {
+  clearTimeout(infoTimer);
+  infoOpen = false;
+  el.infoPanel.style.display = '';
+  el.infoPanel.style.visibility = '';
+  el.infoPanel.classList.remove('info__panel--up');
+}
+
+function hideInfoSoon() {
+  clearTimeout(infoTimer);
+  infoTimer = setTimeout(hideInfo, INFO_CLOSE_MS);
+}
+
+// Kutu işaretin çocuğudur; pointerenter/pointerleave alt düğümlere girip
+// çıkarken tetiklenmediği için imleç kutunun üstündeyken de “işaretin
+// üstünde” sayılır.
+el.info.addEventListener('pointerenter', showInfo);
+el.info.addEventListener('pointerleave', hideInfoSoon);
+el.info.addEventListener('focus', showInfo);
+el.info.addEventListener('blur', hideInfo);
+el.info.addEventListener('keydown', event => {
+  if (event.key === 'Escape') hideInfo();
+});
+
+// Kutunun genişliği pencereye bağlıdır: pencere daralınca metin farklı sarılır
+// ve yükseklik değişir. Açık duran kutu o zaman yanlış yerde kalırdı.
+window.addEventListener('resize', () => {
+  if (infoOpen) placeInfo();
+});
 
 // --- Durum ------------------------------------------------------------------
 
@@ -135,6 +232,10 @@ function render(progress) {
 
   el.start.disabled = state === 'running';
 
+  // Çalıştırma bitmiştir: ya sonuç yazılıdır ya da nerede takıldığı. İki
+  // durumda da ekranda duran özeti kaldırıp “Hazır”a dönmenin bir yolu olmalı.
+  el.reset.hidden = !(state === 'done' || state === 'error');
+
   // Bittiğinde SONUÇ özeti, takıldığında nerede durulduğu, çalışırken de
   // sayfaya dokunmama uyarısı aynı satırda görünür.
   let detail = '';
@@ -152,6 +253,9 @@ function render(progress) {
   else if (state === 'error') percent = 100;
 
   el.statusFill.style.width = `${percent}%`;
+
+  // Liste büyüyünce işaret aşağı kayar; açık duran kutu onunla birlikte gitsin.
+  if (infoOpen) placeInfo();
 }
 
 async function refresh() {
@@ -243,6 +347,32 @@ el.start.addEventListener('click', async () => {
   } catch (_) {
     render({ state: 'error', label: 'Bir şeyler ters gitti' });
   }
+});
+
+// Biten bir çalıştırmanın özetini kaldırıp ekranı “Hazır”a döndürür: popup’ı
+// kapatıp açmaya gerek kalmadan yeni bir sorgu yapılabilsin. Silme işini arka
+// plan yapar; geçici banka belleği de orada durduğu için durumun tek kaynağı
+// orasıdır. Arka plan uyanmadıysa hiç değilse ekran temizlenir.
+el.reset.addEventListener('click', async () => {
+  el.reset.hidden = true;
+
+  try {
+    await chrome.runtime.sendMessage({ type: 'UBH_RESET' });
+  } catch (_) {
+    await chrome.storage.session.set({
+      [PROGRESS_KEY]: {
+        state: 'idle',
+        label: 'Hazır',
+        at: Date.now(),
+        stages: [],
+        index: 0,
+        total: 0,
+        detail: ''
+      }
+    });
+  }
+
+  refresh();
 });
 
 el.version.textContent = `v${chrome.runtime.getManifest().version}`;
