@@ -169,8 +169,8 @@ indirdiğiniz klasörü de silebilirsiniz.
 
 ## Teşekkür
 
-Bu eklentideki banka haciz ekleme akışı, [Raci Çetin Yüksekbaş](https://github.com/raciyuksekbas-hub)'ın
-ortaya koyduğu çözümün üzerine kurulmuştur, kendisine teşekkür ederim.
+Bu eklentideki banka haciz ekleme akışı, Raci Çetin Yüksekbaş'ın ortaya koyduğu çözümün
+üzerine kurulmuştur, kendisine teşekkür ederim.
 
 Sorunuz ya da bildirmek istediğiniz bir şey olursa: [x.com/CgrShn](https://x.com/CgrShn)
 
