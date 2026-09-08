@@ -1,11 +1,19 @@
 # UYAP Haciz Yardımcısı
 
-UYAP Avukat Portalı'nda, takibin kesinleştiği bir borçlu seçildiğinde çalışır. Tercihe göre EGM, icra dosyası, TAKBİS ve banka hacizlerini tek tek veya toplu şekilde hazırlayan bir Chrome eklentisidir. Sorguları sırayla yapar, çıkan kayıtların hepsini
-haciz talebine ekler ve en sonda tek bir talep evrakı oluşturur. Talebi **göndermez**; son
-kontrol, gönderme sizde kalır. Kişisel herhangi bir veri görmez, ağ isteği yapmaz, analitik ve telemetri yoktur, herhangi bir yere veri göndermez. Yalnızca buton arar. Chrome'un geçiciği belleği hariç diske veri yazmaz, geçici bellek Chrome kapanınca silinir.
+UYAP Avukat Portalı'nda, takibin kesinleştiği bir borçlu seçildiğinde çalışır. Tercihe göre
+EGM, icra dosyası, TAKBİS ve banka hacizlerini tek tek ya da toplu şekilde hazırlayan bir
+Chrome eklentisidir. Sorguları sırayla yapar, çıkan kayıtların hepsini haciz talebine ekler ve
+en sonda tek bir talep evrakı oluşturur. Talebi **göndermez**; son kontrol ve gönderme sizde
+kalır.
 
-Eklenti bağımsız bir geliştirici tarafından üretilmiş, yardımcı bir araçtır; UYAP ya da Adalet Bakanlığı tarafından geliştirilmiş
-veya onaylanmış resmî bir ürün değildir.
+Eklenti hiçbir ağ isteği yapmaz; analitik, telemetri ve uzaktan kod yükleme yoktur, hiçbir
+yere veri göndermez. Sayfada yalnızca düğme, sekme ve etiket adlarını arar; dosya numarası,
+TCKN/VKN, hesap numarası, bakiye gibi bilgileri okumaz. Diske veri yazmaz: banka adları
+Chrome'un geçici belleğinde tutulur ve iş bitince, en geç Chrome kapanınca silinir. Ayrıntısı
+[Gizlilik](#gizlilik) bölümünde.
+
+Eklenti bağımsız bir geliştirici tarafından üretilmiş, yardımcı bir araçtır; UYAP ya da
+Adalet Bakanlığı tarafından geliştirilmiş veya onaylanmış resmî bir ürün değildir.
 
 ## Ne yapar
 
@@ -14,7 +22,7 @@ veya onaylanmış resmî bir ürün değildir.
 - EGM'de her araç için açılan **Haciz Şerhi** penceresinde **Haciz** seçeneğini işaretler.
 - Banka sorgusundan çıkan bütün bankaları **Talep Gönder** sekmesinde tek tek seçer, tüm hesap
   türlerini işaretler, **89/1 Haciz İhbarnamesi**'ni seçip **Talep Ekle**'ye basar.
-- En sonda **Talep Evrakı Oluştur** düğmesine basar; evrak indirilir, ve burada durur.
+- En sonda **Talep Evrakı Oluştur** düğmesine basar; evrak indirilir ve akış burada durur.
 - Hangi bölümün ne yaptığını (kaç kayıt eklendi, neden eklenmedi) canlı bir listede yazar;
   bir bölüm takılırsa durmaz, sıradaki bölüme geçer.
 - UYAP bir kutuyla engellediğinde (60 dakika sınırı, bakiye, saat penceresi, kurum borçlusu)
@@ -23,13 +31,20 @@ veya onaylanmış resmî bir ürün değildir.
 
 ## Kurulum
 
-Eklenti Chrome Web Mağazası'nda değil; kaynak koddan yüklenir. Chrome 102 ve üzeri (ya da
-Edge gibi Chromium tabanlı bir tarayıcı) gerekir, yönetici hakkı gerekmez.
+### Chrome Web Mağazası'ndan (önerilen)
 
-> Depo özel (private) olduğu için aşağıdaki bağlantı yalnızca GitHub'da oturumu açık olan
-> yetkili hesaplarda çalışır.
+**[UYAP Haciz Yardımcısı'nı Chrome'a ekle](CHROME_MAGAZA_BAGLANTISI)** — açılan sayfada
+**Chrome'a ekle**, sonra **Uzantı ekle** düğmesine basın. Chrome 102 ve üzeri (ya da Edge gibi
+Chromium tabanlı bir tarayıcı) gerekir, yönetici hakkı gerekmez.
 
-### Kaynak koddan
+Kurulumdan sonra araç çubuğundaki **Uzantılar** (yapboz) simgesine tıklayıp
+**UYAP Haciz Yardımcısı**'nın yanındaki raptiyeye basın; simge çubukta kalır.
+
+Mağazadan kurulan eklenti kendini günceller, ayrıca bir şey yapmanız gerekmez.
+
+### Kaynak koddan (geliştirici modu)
+
+Mağazayı kullanmak istemiyorsanız eklentiyi doğrudan bu depodan da yükleyebilirsiniz:
 
 1. [github.com/SCgrS/UYAP-Haciz-Yardimcisi](https://github.com/SCgrS/UYAP-Haciz-Yardimcisi)
    sayfasında yeşil **Code** düğmesine, açılan menüde **Download ZIP**'e tıklayın.
@@ -42,18 +57,16 @@ Edge gibi Chromium tabanlı bir tarayıcı) gerekir, yönetici hakkı gerekmez.
 6. Araç çubuğundaki **Uzantılar** (yapboz) simgesine tıklayıp **UYAP Haciz Yardımcısı**'nın
    yanındaki raptiyeye basın; simge çubukta kalır.
 
-Eklenti diske hiçbir şey yazmaz, kayıt defterine dokunmaz, kısayol eklemez. Tercihleri
-Chrome'un kendi eklenti deposunda durur ve eklentiyle birlikte silinir.
-
-### Güncelleme
-
-Eklenti kendini güncellemez. Yeni ZIP'i indirip aynı klasörün içeriğini değiştirin, sonra
-`chrome://extensions` sayfasında eklentinin kartındaki **yenile** (dairesel ok) düğmesine
-basın. Açık UYAP sekmesini yenilemeniz gerekmez; eklenti her çalıştırmada betiklerini sayfaya
-yeniden yükler.
+Bu şekilde kurulan eklenti kendini güncellemez. Yeni ZIP'i indirip aynı klasörün içeriğini
+değiştirin, sonra `chrome://extensions` sayfasında eklentinin kartındaki **yenile** (dairesel
+ok) düğmesine basın. Açık UYAP sekmesini yenilemeniz gerekmez; eklenti her çalıştırmada
+betiklerini sayfaya yeniden yükler.
 
 > Popup'ta **Eklentiyi yenileyin** yazıyorsa Chrome arka planda hâlâ eski sürümü çalıştırıyor
 > demektir. Aynı yenile düğmesine basın; eklenti o düzeltilene kadar hiçbir sorgu yapmaz.
+
+Eklenti diske hiçbir şey yazmaz, kayıt defterine dokunmaz, kısayol eklemez. Tercihleri
+Chrome'un kendi eklenti deposunda durur ve eklentiyle birlikte silinir.
 
 ## Kullanım
 
@@ -148,11 +161,14 @@ ya da "Taşınmaz kaydı yok" notuyla biter. Beklenen bir öğe hiç gelmezse du
   sayısına ulaşılamazsa o bölüm hata ile durur.
 - Hukuki değerlendirme yapmaz. Gönderilecek talebin doğruluğundan siz sorumlusunuz.
 
-## Verileriniz nerede duruyor?
+## Gizlilik
+
+Bu bölüm eklentinin gizlilik politikasıdır ve bütün sürümleri için geçerlidir.
 
 Eklenti hiçbir ağ isteği yapmaz; analitik ve telemetri yoktur, geliştiriciye ya da üçüncü
-taraflara veri gitmez. Uzaktan kod yüklemez, harici betik veya CDN kullanmaz. Yalnızca
-`https://avukat.uyap.gov.tr/*` adresinde çalışır.
+taraflara veri gitmez, hiçbir veri satılmaz ya da devredilmez. Uzaktan kod yüklemez, harici
+betik veya CDN kullanmaz. Yalnızca `https://avukat.uyap.gov.tr/*` adresinde çalışır; başka
+hiçbir sitede çalışmaz, öteki sekmelerinizi görmez.
 
 Sayfadan yalnız şunlar okunur:
 
@@ -176,17 +192,26 @@ Saklananlar:
   penceresinden ayrıldığınızda, belleğe alınmasının üzerinden 10 dakika geçince ve Chrome
   kapanınca silinir.
 - **Tercihler** (koyu/açık mod, haciz türü tikleri, ücret onayı) `chrome.storage.local`
-  içinde kalır. Dosya veya kişi verisi değildir.
+  içinde kalır. Dosya veya kişi verisi değildir; eklenti kaldırılınca silinir.
 
-İzinler: `storage` (yukarıdaki geçici bellek ve tercihler), `alarms` (10 dakikalık silme
-zamanlayıcısı), `scripting` (her çalıştırmada betikleri açık UYAP sekmesine yüklemek için)
-ve yalnız `https://avukat.uyap.gov.tr/*` için site izni.
+İstenen izinler ve nedenleri:
+
+| İzin | Neden gerekiyor |
+|---|---|
+| `storage` | Yukarıdaki geçici bellek (banka adları) ve tercihler için. |
+| `alarms` | Banka adlarını 10 dakika sonra bellekten silen zamanlayıcı için. |
+| `scripting` | Her çalıştırmada eklentinin betiklerini açık UYAP sekmesine yüklemek için. |
+| `https://avukat.uyap.gov.tr/*` | Eklentinin tıkladığı düğmeler bu sayfadadır; başka site izni istenmez. |
+
+Sorunuz ya da bildirmek istediğiniz bir sorun olursa depodaki **Issues** sekmesinden
+yazabilirsiniz.
 
 ## Kaldırma
 
-`chrome://extensions` sayfasında eklentinin kartındaki **Kaldır** düğmesine basın ve çıkan
-soruyu **Kaldır** ile onaylayın. Tercihler eklentiyle birlikte silinir. İndirdiğiniz klasörü
-de silebilirsiniz.
+Araç çubuğundaki eklenti simgesine sağ tıklayıp **Chrome'dan kaldır** deyin; ya da
+`chrome://extensions` sayfasında eklentinin kartındaki **Kaldır** düğmesine basıp çıkan soruyu
+**Kaldır** ile onaylayın. Tercihler eklentiyle birlikte silinir. Kaynak koddan kurduysanız
+indirdiğiniz klasörü de silebilirsiniz.
 
 ## Bilinen sınırlar
 
