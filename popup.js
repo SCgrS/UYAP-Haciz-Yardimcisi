@@ -223,7 +223,10 @@ for (const input of document.querySelectorAll('[data-opt]')) {
 async function activeUyapTab() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.id) return null;
-  if (tab.url && !tab.url.startsWith(UYAP_PREFIX)) return null;
+  // "tabs" izni olmadığından host izni dışındaki sekmelerde tab.url boş gelir;
+  // boş adres de UYAP değildir. Eskiden boş adres kontrolü atlıyor, enjeksiyon
+  // patlıyor ve kullanıcı yanlış bir "sayfayı yenileyin" hatası görüyordu.
+  if (!tab.url || !tab.url.startsWith(UYAP_PREFIX)) return null;
   return tab;
 }
 

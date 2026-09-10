@@ -464,6 +464,88 @@
     return null;
   }
 
+  // UYAP'ın "Yükleniyor..." perdesi (dx-loadpanel). Bir sorgu kartına
+  // tıklandığında dosya bilgileri ilgili kuruma gönderilir ve bu sırada perde
+  // açılır. Ölçüm (2026-09-10, dört kart): şerit ve Sorgula düğmesi tıklamadan
+  // 7-170 ms sonra çiziliyor, perde ise ondan SONRA, 160-220 ms'de açılıp
+  // 360-510 ms'de kapanıyor; gerçek kişi borçluda kimlik bilgisi alınırken
+  // saniyelerce sürebiliyor. Perde gerçek tıklamayı engeller ama programatik
+  // tıklamayı engellemez: eskiden Sorgula'ya perde daha açılmadan basılıyor,
+  // sorgu hazırlık bitmeden gidiyor ve EGM "TC kimlik bilgileri alınamadı"
+  // diyor, TAKBİS ise uzun süre takılıyordu.
+  //
+  // Perde ayrı bir katmanda ve konumu değişebildiğinden (fixed/absolute)
+  // offsetParent'a değil çizilen alana bakılır.
+  const LOADER_SELECTOR = '.dx-loadpanel-wrapper, .dx-loadpanel-content';
+
+  function loaderShown() {
+    for (const el of document.querySelectorAll(LOADER_SELECTOR)) {
+      if (!el.isConnected || el.classList.contains('dx-state-invisible')) continue;
+
+      const style = getComputedStyle(el);
+      if (style.display === 'none' || style.visibility === 'hidden') continue;
+
+      const rect = el.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) return true;
+    }
+    return false;
+  }
+
+  // Perde açılıp kapanması beklenen yerlerde üst sınır. Kurum yanıtı gecikirse
+  // UYAP perdeyi açık tutuyor; sonsuza kadar beklemek yerine bölüm düşürülür.
+  const LOADER_TIMEOUT_MS = 60000;
+
+  // Bir düğmeye basmadan hemen önce: o an perde açıksa kapanması beklenir,
+  // kapandıktan sonra sayfanın kendine gelmesi için kısa bir pay bırakılır.
+  // Perde yoksa hiç beklemez; sık çağrıldığı yerlerde (kayıt ekleme) akışı
+  // yavaşlatmaz.
+  async function waitForLoaderGone() {
+    if (!loaderShown()) return;
+
+    const started = Date.now();
+    while (loaderShown()) {
+      if (Date.now() - started > LOADER_TIMEOUT_MS) fail('Sayfadaki yükleme göstergesi kapanmadı');
+      await sleep(50);
+    }
+    await sleep(150);
+  }
+
+  // Bir karta tıklandıktan sonra: perde GEÇ açıldığı için yalnız "şu an perde
+  // yok" demek yetmez; graceMs boyunca hiç perde görülmeyene kadar beklenir.
+  // Perde açılırsa kapanması, kapandıktan sonra da yine graceMs sessizlik
+  // beklenir.
+  //
+  // Perde kısa sürdüğünde (kurum yanıtı beklenmeyen, yalnız çizimden ibaret
+  // hazırlıkta) 50 ms'lik yoklama arasına sığıp kaçabiliyor; DOM her
+  // değiştiğinde de bakılır ki o an bile "meşgul" sayılsın.
+  async function waitForPageQuiet(graceMs) {
+    const started = Date.now();
+    let busyAt = Date.now();
+
+    const observer = new MutationObserver(() => {
+      if (loaderShown()) busyAt = Date.now();
+    });
+    observer.observe(document.body, {
+      childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style']
+    });
+
+    try {
+      while (true) {
+        if (loaderShown()) busyAt = Date.now();
+        else if (Date.now() - busyAt >= graceMs) return;
+
+        if (Date.now() - started > LOADER_TIMEOUT_MS) fail('Sayfadaki yükleme göstergesi kapanmadı');
+        await sleep(50);
+      }
+    } finally {
+      observer.disconnect();
+    }
+  }
+
+  // Kart tıklamasından sonra beklenen sessizlik. Ölçülen en geç perde açılışı
+  // 217 ms; yavaş makine ve ağ payıyla geniş tutulur.
+  const CARD_SETTLE_MS = 1000;
+
   // Bilgilendirme kutuları (ör. "60 dakikada 1 defa yapılabilir") tek düğmelidir
   // ve kapatılabilir. İki düğmeli gerçek bir onay sorusuna ASLA dokunulmaz;
   // böyle bir durumda otomasyon durur.
@@ -572,7 +654,10 @@
 
       // Seçili sekmeye yeniden tıklamak o an açık olan sorgu şeridini
       // kapatabilir; seçiliyse yalnız kartın çizilmesi beklenir.
-      if (!tabSelected(tab)) tab.click();
+      if (!tabSelected(tab)) {
+        await waitForLoaderGone();
+        tab.click();
+      }
 
       if (await waitFor(ready, 4000)) return;
     }
@@ -583,6 +668,11 @@
   // Kart açık değilse açar. Açıksa hiç tıklamaz: açık bir kartın kendisine
   // ikinci kez tıklamak şeridi kapatır. Her turun başında şerit yeniden
   // yoklanır ki geç açılan bir şerit ikinci tıklamayla kapatılmasın.
+  //
+  // Şeridin çizilmesi kartın hazır olduğu anlamına gelmez: UYAP şeridi hemen
+  // çizer, dosya bilgilerini kuruma ondan sonra, perde açarak gönderir. Bu
+  // yüzden şerit geldikten sonra bir de perdenin açılıp kapanması beklenir
+  // (bkz. waitForPageQuiet). Sorgula düğmesine ancak ondan sonra basılabilir.
   async function openQueryCard(cardTitle, panelText, missingLabel) {
     for (let attempt = 0; attempt < 3; attempt++) {
       if (findQueryPanel(panelText)) return;
@@ -590,9 +680,13 @@
       const card = await waitFor(() => findQueryCard(cardTitle), 4000);
       if (!card) continue;
 
+      await waitForLoaderGone();
       card.click();
 
-      if (await waitFor(() => findQueryPanel(panelText), 5000)) return;
+      if (await waitFor(() => findQueryPanel(panelText), 5000)) {
+        await waitForPageQuiet(CARD_SETTLE_MS);
+        return;
+      }
     }
 
     if (findQueryPanel(panelText)) return;
@@ -736,6 +830,10 @@
 
       const sorgula = findBankaSorgulaButton();
       if (!sorgula) fail('Sorgula düğmesi bulunamadı');
+
+      // Şerit akış başlamadan önce zaten açıksa kartın perdesi hâlâ dönüyor
+      // olabilir; perde açıkken basılmaz.
+      await waitForLoaderGone();
       sorgula.click();
 
       // Sonuç tablosu, ücret onayı ya da (limit gibi) bir bilgilendirme kutusu
@@ -819,6 +917,7 @@
 
     const tab = findTab('Talep Gönder');
     if (!tab) fail('Talep Gönder sekmesi bulunamadı');
+    await waitForLoaderGone();
     tab.click();
 
     if (!await waitFor(() => findEditorByPlaceholder('Talep Tipi Seçiniz'), 12000)) {
@@ -1008,6 +1107,7 @@
 
     const button = findActionButton('Talep Ekle');
     if (!button) fail('Talep Ekle düğmesi bulunamadı');
+    await waitForLoaderGone();
     button.click();
 
     // UYAP "Talep eklendi." kutusunu açar (tek düğmeli, başarı ikonlu).
@@ -1035,6 +1135,7 @@
     const button = findEvrakOlusturButton();
     if (!button) fail('Talep evrakı düğmesi bulunamadı');
 
+    await waitForLoaderGone();
     button.click();
 
     // Burada çoğu zaman kutu çıkmaz. Çıkmayacak bir kutuyu beklemek boşuna
@@ -1209,6 +1310,7 @@
       .find(el => textOf(el) === label);
     if (!target) return false;
 
+    await waitForLoaderGone();
     target.click();
 
     const moved = await waitFor(() => {
@@ -1303,6 +1405,9 @@
     // önceki sayı not edilir ki sonradan düşen cümle onunkinden ayrılabilsin.
     const baseline = noRecordSentences(true).length;
 
+    // Şerit akış başlamadan önce zaten açıksa kartın perdesi hâlâ dönüyor
+    // olabilir; perde açıkken basılmaz.
+    await waitForLoaderGone();
     sorgula.click();
 
     // Sonuç tablosu, "kayıt yok" cümlesi, ücret onayı ya da bir bilgilendirme
@@ -1407,6 +1512,7 @@
           total: stepTotal
         });
 
+        await waitForLoaderGone();
         buttons[index].click();
         await completeAdd();
         await sleep(200);
@@ -1427,6 +1533,7 @@
 
     const tab = findTab('Talep Gönder');
     if (!tab) fail('Talep Gönder sekmesi bulunamadı');
+    await waitForLoaderGone();
     tab.click();
 
     // Talep tipi / türü seçilmez; hazır olmanın kanıtı talep evrakı düğmesidir.
