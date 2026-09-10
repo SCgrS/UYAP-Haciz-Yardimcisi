@@ -22,7 +22,7 @@ Eklenti bağımsız bir geliştirici tarafından üretilmiş, yardımcı bir ara
 
 ## Kurulum
 
-### [Chrome Web Mağazası'ndan ekle](CHROME_MAGAZA_BAGLANTISI)
+### [Chrome Web Mağazası'ndan ekle](https://chromewebstore.google.com/detail/jhejmhbhkdlamabcdmonlobfeepillpj?utm_source=item-share-cb)
 
 1. Bağlantıya tıklayın, açılan sayfada **Chrome'a ekle**'ye basın.
 2. Çıkan küçük pencerede **Uzantı ekle**'ye basın.
