@@ -12,7 +12,7 @@
 // haciz türü tiki eski service worker'a hiç ulaşmıyor, toplu akış yine dört
 // türü de sorguluyordu. Sorgu hakları sayılı olduğu için bu numara ile popup,
 // arka planın kendi sürümüyle konuşup konuşmadığını çalıştırmadan önce anlar.
-const PROTOCOL = 2;
+const PROTOCOL = 3;
 
 const BANKS_KEY = 'ubh_banks';
 const PROGRESS_KEY = 'ubh_progress';
@@ -198,9 +198,11 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
     case 'UBH_START':
       startRun(message.tabId, {
-        // Çalışacak haciz türleri ve ücret onayı: popup'ın verdiği tek karar.
+        // Çalışacak haciz türleri, ücret onayı ve banka talebinin evrak türü:
+        // popup'ın verdiği kararlar. Evrak türü tanınmazsa öntanımlı 89/1'dir.
         types: Array.isArray(message.types) ? message.types : [],
-        paid: message.paid === true
+        paid: message.paid === true,
+        bankaTalep: message.bankaTalep === 'muzekkere' ? 'muzekkere' : 'ihbarname'
       }).then(sendResponse);
       return true;
 

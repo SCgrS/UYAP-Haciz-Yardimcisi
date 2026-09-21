@@ -2,8 +2,8 @@
 //
 // MAHREMİYET: Bu betik yalnız aşağıdakileri okur:
 //   - düğme / sekme / seçenek etiketleri,
-//   - "No / Kurum" tablosundaki BANKA kurum adları,
-//   - Banka Seç ve Hesap Seç listelerindeki satır adları,
+//   - "No / Kurum" tablosundaki BANKA kurum adları (bütün sayfalar),
+//   - Banka Seç (bütün sayfalar) ve Hesap Seç listelerindeki satır adları,
 //   - sayfalayıcıdaki kayıt sayısı ve sayfa numaraları.
 // Ayrıca sorgu sonucunda "... kaydı yok" cümlesinin çıkıp çıkmadığını anlamak
 // için sayfa metninde YALNIZ o cümle kalıbı aranır; eşleşen cümle dışında
@@ -29,11 +29,20 @@
   const TO_EXT = 'UBH_TO_EXT_V2';
 
   const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
-  const isVisible = el => !!el && el.offsetParent !== null;
+  // offsetParent yalnız display:none olan öğeleri eler. DevExtreme sekme
+  // panelleri ise seçili olmayan sekmenin içeriğini silmez, visibility:hidden
+  // verip ekran dışına iter. Ölçüm (2026-09-21): Talep Gönder'deki No / Kurum
+  // tablosu Sorgular sekmesindeyken de offsetParent taşıyordu; iki tablo birden
+  // "görünür" sayılıyor, sayfalar yanlış tablodan okunabiliyordu. Böyle bir
+  // öğeye tıklanamaz da; görünmez sayılır.
+  const isVisible = el =>
+    !!el && el.offsetParent !== null && getComputedStyle(el).visibility !== 'hidden';
 
   // =========================================================================
-  // BÖLÜM 1 - BANKA EŞLEŞTİRME ÇEKİRDEĞİ (v1'den değiştirilmeden alınmıştır)
-  // Bu bölümün mantığı ve zamanlaması saha ölçümleriyle oturmuştur.
+  // BÖLÜM 1 - BANKA EŞLEŞTİRME ÇEKİRDEĞİ (v1'den alınmıştır)
+  // Bu bölümün mantığı ve zamanlaması saha ölçümleriyle oturmuştur. 2.13'te
+  // yalnız ad eşlemesi değişti: elle tutulan tablo yerine Banka Seç listesinin
+  // kendisine bakılıyor. Filtreleme, seçim ve bekleme süreleri aynıdır.
   // =========================================================================
 
   // Saha ölçümü: ilk (soğuk) filtre işlemi 3040 ms'de henüz bitmemişti,
@@ -47,10 +56,6 @@
       .replace(/[.,]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
-  }
-
-  function sourceKey(value) {
-    return normalize(value);
   }
 
   function canonical(value) {
@@ -76,28 +81,145 @@
     return s;
   }
 
-  // Anahtarlar normalize edilmiş kaynak UYAP adlarıdır.
-  // Böylece noktalama/boşluk farkları alias lookup'ı bozmaz.
-  const ALIAS_REGISTRY = new Map([
-    [sourceKey('AKBANK T.A.Ş.'), 'AKBANK TÜRK ANONİM ŞİRKETİ'],
-    [sourceKey('TÜRKİYE VAKIFLAR BANKASI T.A.O.'), 'TÜRKİYE VAKIFLAR BANKASI TÜRK ANONİM ORTAKLIĞI'],
-    [sourceKey('T.C. ZİRAAT BANKASI A.Ş.'), 'TÜRKİYE CUMHURİYETİ ZİRAAT BANKASI ANONİM ŞİRKETİ'],
-    [sourceKey('TÜRKİYE HALK BANKASI A.Ş.'), 'TÜRKİYE HALK BANKASI ANONİM ŞİRKETİ GENEL MÜDÜRLÜĞÜ'],
-    [sourceKey('QNB BANK A.Ş.'), 'QNB BANK ANONİM ŞİRKETİ']
+  // --- Sorgu sonucundaki adı Banka Seç listesindeki unvana bağlama ----------
+  //
+  // Sorgu sonucundaki kurum adları Banka Seç listesindeki resmî unvanla
+  // yazılmıyor. Eskiden elle tutulan bir eşleme tablosu vardı; kurum
+  // borçlularda ise aynı banka tek listede birkaç biçimde geliyor ve tablo
+  // yetmiyordu. Ölçüm (2026-09-21, kurum borçlu, 135 satır, 16 yazım, 9 banka):
+  //   - 20 harfte kesilmiş:  "YAPI VE KREDİ BANKAS", "TURKIYE GARANTI BAN"
+  //   - Türkçe harfsiz:      "TURKIYE GARANTI BANKASI A.S.", "DENIZBANK A.S."
+  //   - kısaltmalı:          "T.C. Ziraat Bankası Genel Mdr", "TÜRKİYE VAKIFLAR BANKASI TAO",
+  //                          "ALBARAKA TÜRK KATILIM BNK A.Ş."
+  //   - bitişik yazılmış:    "KUVEYTTÜRK ..."   (listede "KUVEYT TÜRK ...")
+  //   - listede önekli:      "ASYA KATILIM BANKASI" (listede "MÜFLİS ASYA ...")
+  //
+  // Bu yüzden önce Banka Seç listesinin TAMAMI okunur, her ad oradaki tek bir
+  // unvana bağlanır. Karşılaştırma harf farkına, boşluğa, noktalamaya ve şirket
+  // ekine bakmaz. Hiçbir unvana ya da birden çok unvana uyan bir ad çıkarsa
+  // tahmin yürütülmez: eksik talep hazırlanmaz, akış o adı söyleyerek durur.
+
+  const ASCII_LETTERS = { Ç: 'C', Ğ: 'G', İ: 'I', Ö: 'O', Ş: 'S', Ü: 'U' };
+
+  // Unvanın başında durup bankayı değiştirmeyen sözcükler.
+  const LEADING_NOISE = [['MUFLIS'], ['TASFIYE', 'HALINDE']];
+
+  // Sondaki şirket ekleri ve merkez adları. Uzun olan önce denenir: "T A S",
+  // "A S"den önce gelmezse "AKBANK T" kalırdı.
+  const TRAILING_NOISE = [
+    ['GENEL', 'MUDURLUGU'], ['GENEL', 'MUDURLUK'], ['GENEL', 'MDR'], ['GENEL', 'MD'],
+    ['TURK', 'ANONIM', 'ORTAKLIGI'], ['TURK', 'ANONIM', 'SIRKETI'],
+    ['ANONIM', 'ORTAKLIGI'], ['ANONIM', 'SIRKETI'],
+    ['T', 'A', 'S'], ['T', 'A', 'O'], ['TAS'], ['TAO'],
+    ['A', 'S'], ['A', 'O'], ['AS'], ['AO']
+  ];
+
+  // Resmî unvanı hiç anmayan, marka olarak yerleşmiş adlar. Anahtar ve değer
+  // bankForms().core biçimindedir.
+  const BRAND_ALIASES = new Map([
+    ['YAPIKREDI', 'YAPIVEKREDIBANKASI'],
+    ['YAPIKREDIBANKASI', 'YAPIVEKREDIBANKASI'],
+    ['GARANTIBBVA', 'TURKIYEGARANTIBANKASI'],
+    ['VAKIFBANK', 'TURKIYEVAKIFLARBANKASI'],
+    ['TEB', 'TURKEKONOMIBANKASI'],
+    ['FINANSBANK', 'QNBBANK'],
+    ['QNBFINANSBANK', 'QNBBANK']
   ]);
 
-  // Bazı DevExtreme filtrelerinde uzun resmi unvan yerine kısa, ayırt edici
-  // arama anahtarı daha güvenilir çalışıyor. Seçim yine TAM resmi ad ile doğrulanır.
-  const SEARCH_REGISTRY = new Map([
-    [sourceKey('T.O.M. KATILIM BANKASI A.Ş.'), 'T.O.M. KATILIM BANKASI']
-  ]);
+  const startsWithWords = (words, prefix) =>
+    prefix.length <= words.length && prefix.every((word, i) => words[i] === word);
 
-  function targetFor(sourceName) {
-    return ALIAS_REGISTRY.get(sourceKey(sourceName)) || sourceName;
+  const endsWithWords = (words, suffix) =>
+    suffix.length < words.length &&
+    suffix.every((word, i) => words[words.length - suffix.length + i] === word);
+
+  // İki biçim döner, ikisi de boşluksuz yazılır ("KUVEYTTÜRK" = "KUVEYT TÜRK"):
+  //   full: harfleri düzleştirilmiş, kısaltmaları açılmış tam ad
+  //   core: aynı ad, sondaki şirket eki ve "Genel Müdürlüğü" atılmış
+  // full ayrıca tutulur, çünkü 20 harfte kesilmiş bir ad şirket ekinin
+  // ortasında bitebilir ("AKBANK TÜRK ANONİM Ş").
+  function bankForms(value) {
+    let words = normalize(value)
+      .replace(/[ÇĞİÖŞÜ]/g, ch => ASCII_LETTERS[ch])
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .replace(/[^A-Z0-9]+/g, ' ')
+      .trim()
+      .split(' ')
+      .filter(Boolean);
+
+    for (const noise of LEADING_NOISE) {
+      if (startsWithWords(words, noise) && words.length > noise.length) {
+        words = words.slice(noise.length);
+      }
+    }
+
+    if (startsWithWords(words, ['T', 'C'])) words = ['TURKIYE', 'CUMHURIYETI', ...words.slice(2)];
+    else if (words[0] === 'TC') words = ['TURKIYE', 'CUMHURIYETI', ...words.slice(1)];
+
+    words = words.map(word => (word === 'BNK' ? 'BANKASI' : word));
+
+    const full = words.join('');
+
+    let stripped = true;
+    while (stripped) {
+      stripped = false;
+      for (const noise of TRAILING_NOISE) {
+        if (endsWithWords(words, noise)) {
+          words = words.slice(0, words.length - noise.length);
+          stripped = true;
+          break;
+        }
+      }
+    }
+
+    return { full, core: words.join('') };
   }
 
-  function searchFor(sourceName, expectedTarget) {
-    return SEARCH_REGISTRY.get(sourceKey(sourceName)) || canonical(expectedTarget);
+  // targets: Banka Seç listesinden okunmuş [{ name, full, core }].
+  // Uyan unvanları döndürür; çağıran taraf yalnız TEK sonucu kabul eder.
+  // Katmanlar sırayla denenir, ilk sonuç veren katmanda durulur:
+  //   1. aynı ad,
+  //   2. kesilmiş ad (unvanın başı),
+  //   3. baştan ya da sondan bir parçası eksik ya da fazla ad
+  //      ("ZİRAAT BANKASI", "HALKBANK", "... KIZILAY ŞUBESİ").
+  function matchBank(sourceName, targets) {
+    const source = bankForms(sourceName);
+    const key = BRAND_ALIASES.get(source.core) || source.core;
+    if (key.length < 3) return [];
+
+    const tiers = [
+      target => target.core === key,
+      target => target.core.startsWith(key) ||
+                target.full.startsWith(key) ||
+                target.full.startsWith(source.full),
+      target => (key.length >= 6 && target.core.includes(key)) ||
+                (target.core.length >= 6 && key.includes(target.core))
+    ];
+
+    for (const test of tiers) {
+      const hits = targets.filter(test);
+      if (hits.length > 0) return hits;
+    }
+    return [];
+  }
+
+  // Filtre kutusu metni olduğu gibi arar. Unvanın içinde noktalama varsa
+  // ("T.O.M. KATILIM BANKASI", "S.P.A.") noktalamayı boşluğa çeviren
+  // canonical() anahtarı hiçbir satırı bulamaz; o zaman unvanın kendisi,
+  // yalnız şirket eki atılarak kullanılır. Noktalamasız unvanlarda anahtar
+  // eskisiyle aynıdır.
+  const RAW_SUFFIX = /\s+(?:TÜRK\s+)?ANONİM\s+(?:ŞİRKETİ|ORTAKLIĞI)\.?$|\s+(?:T\.?\s*)?A\.?\s*[ŞO]\.?$/;
+
+  function searchKeyFor(target) {
+    const key = canonical(target);
+    const raw = String(target)
+      .normalize('NFKC')
+      .toLocaleUpperCase('tr-TR')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    return raw.includes(key) ? key : raw.replace(RAW_SUFFIX, '').trim();
   }
 
   function findSourceGrid() {
@@ -117,7 +239,10 @@
     }) || null;
   }
 
-  function readBanks() {
+  // Tablonun O AN ekrandaki sayfasındaki satırlar: satır başına bir ad, boş
+  // hücre boş dizgi olarak. Satır sayısı kayıt sayısıyla karşılaştırılacağı
+  // için tekrarlar burada ayıklanmaz.
+  function readBankRows() {
     const grid = findSourceGrid();
     if (!grid) return null;
 
@@ -127,15 +252,10 @@
     const colIndex = kurumHeader?.getAttribute('aria-colindex');
     if (!colIndex) return null;
 
-    const result = new Set();
-
-    for (const row of grid.querySelectorAll('tr.dx-data-row')) {
-      const cell = row.querySelector(`td[role="gridcell"][aria-colindex="${colIndex}"]`);
-      const bankName = cell?.innerText.trim();
-      if (bankName) result.add(bankName);
-    }
-
-    return result;
+    return [...grid.querySelectorAll('tr.dx-data-row')].map(row =>
+      row.querySelector(`td[role="gridcell"][aria-colindex="${colIndex}"]`)
+        ?.innerText.trim() || ''
+    );
   }
 
   function findBankSelectGrid() {
@@ -358,7 +478,8 @@
     if (parts) setFilter(parts.filterInput, '');
   }
 
-  async function selectOneBank(sourceName) {
+  // expectedTarget, Banka Seç listesinden okunmuş TAM unvandır (bkz. matchBank).
+  async function selectOneBank(expectedTarget) {
     const m = {};
     const done = ok => { m.ok = ok; return m; };
 
@@ -368,8 +489,7 @@
     const parts = getGridParts(grid);
     if (!parts) return done(false);
 
-    const expectedTarget = targetFor(sourceName);
-    const searchKey = searchFor(sourceName, expectedTarget);
+    const searchKey = searchKeyFor(expectedTarget);
 
     const alreadySelected = selectedTargetCount(expectedTarget);
     if (alreadySelected > 0) return done(alreadySelected === 1);
@@ -768,16 +888,109 @@
     return null;
   }
 
-  // Sayfalayıcı "Sayfa 1 / 1 (7 Kayıt)" biçiminde toplam kayıt sayısı yazar.
-  // DOM'daki satır sayısı bundan azsa tablo hâlâ sayfalanmıştır ve okunacak
-  // liste eksik olur. Böyle bir durumda eksik talep hazırlamak yerine durulur.
-  function sourceRowsIncomplete(grid) {
-    const pager = gridPager(grid);
-    const info = pager?.querySelector('.dx-info');
+  // Sayfalayıcı "Sayfa 1 / 2 (137 Kayıt)" biçiminde toplam kayıt sayısı yazar.
+  // Yazmıyorsa (Banka Seç listesi, sayfalanmayan küçük tablolar) 0 döner.
+  function gridRecordCount(grid) {
+    const info = grid && gridPager(grid)?.querySelector('.dx-info');
     const match = info && textOf(info).match(/\((\d+)/);
-    if (!match) return false;
+    return match ? Number(match[1]) : 0;
+  }
 
-    return grid.querySelectorAll('tr.dx-data-row').length < Number(match[1]);
+  // Tablo yeniden çizildiğinde eski düğüm elden gidebildiğinden kök değil,
+  // onu bulan işlev alınır. Sayfa zaten seçiliyse tıklanmaz. Sayfa şeritte
+  // yoksa false döner; tıklandığı hâlde geçilemezse durulur.
+  async function goToPage(findGrid, number) {
+    const label = String(number);
+    const grid = findGrid();
+    const pager = grid && gridPager(grid);
+    if (!pager) return false;
+
+    if (textOf(pager.querySelector('.dx-page.dx-selection')) === label) return true;
+
+    const target = [...pager.querySelectorAll('.dx-page')]
+      .filter(isVisible)
+      .find(el => textOf(el) === label);
+    if (!target) return false;
+
+    await waitForLoaderGone();
+
+    const before = firstDataRow(grid);
+    target.click();
+
+    if (!await waitFor(() => rowsRedrawn(findGrid, before, label), 15000)) {
+      fail('Sonraki sayfaya geçilemedi');
+    }
+
+    await waitForLoaderGone();
+    await sleep(600);
+    return true;
+  }
+
+  const firstDataRow = grid => grid?.querySelector('tr.dx-data-row') || null;
+
+  // Şeritteki işaret tıklanır tıklanmaz yeni sayfaya geçer, satırlar ise
+  // ondan sonra çizilir. Ölçüm (2026-09-21): işaret 2. sayfadayken tablo hâlâ
+  // 1. sayfanın 100 satırını gösteriyordu ve aynı satırlar iki kez okundu
+  // (200/135). Sekme arka plandayken Chrome çizimi daha da geciktiriyor. Bu
+  // yüzden satırların yeniden çizildiği de beklenir. Bunun kanıtı ilk satırın
+  // YENİ bir düğüm olmasıdır. Satırın içeriğine bakılmaz: EGM ve TAKBİS
+  // tablolarında içerik okunmaz.
+  function rowsRedrawn(findGrid, before, label) {
+    const grid = findGrid();
+    const selected = grid && gridPager(grid)?.querySelector('.dx-page.dx-selection');
+    if (!selected || textOf(selected) !== label) return false;
+
+    const first = firstDataRow(grid);
+    return !!first && first !== before;
+  }
+
+  // Sayfa boyutu en büyüğe çekilse de kayıt sayısı taşabilir. Çok sayfalı
+  // listelerde sayfalayıcı araya "..." koyup yalnız bir pencere gösterir ve
+  // şeridin son öğesi SON sayfadır; bu yüzden sıradaki sayfa konuma göre değil
+  // numarasına göre aranır. Aksi hâlde beşinci sayfadan sonuncuya atlanabilir.
+  async function goToNextPage(findGrid) {
+    const grid = findGrid();
+    const pager = grid && gridPager(grid);
+    if (!pager) return false;
+
+    const current = Number(textOf(pager.querySelector('.dx-page.dx-selection')));
+    if (!current) return false;
+
+    return goToPage(findGrid, current + 1);
+  }
+
+  // Sorgu sonucundaki bankalar. Şahıs borçluda liste tek sayfaya sığıyor;
+  // kurum borçluda aynı banka her hesap için ayrı satır olarak geliyor
+  // (ölçüm: 135 satır). Sorgular sekmesindeki tabloda "Tümü" seçeneği yok, en
+  // büyük sayfa 100 kayıt; eskiden bu yüzden "Banka listesi eksik geldi"
+  // deniyordu. Artık bütün sayfalar tek tek okunur.
+  //
+  // Okunan satırların toplamı sayfalayıcının yazdığı kayıt sayısını tutmazsa
+  // eksik talep hazırlamak yerine durulur. Dönen küme tekrarsızdır; aynı
+  // bankanın farklı yazımları eşleştirme adımında birleşir.
+  async function readSourceBanks() {
+    await expandGridPages(findSourceGrid);
+
+    const total = gridRecordCount(findSourceGrid());
+
+    // Sayfa boyutu değişince tablo son sayfada kalabiliyor (ölçüldü: 50'den
+    // 100'e geçince 2. sayfada kaldı); okuma daima baştan başlar.
+    await goToPage(findSourceGrid, 1);
+
+    const names = new Set();
+    let rows = 0;
+
+    do {
+      const page = readBankRows();
+      if (!page) fail('Banka listesi kayboldu');
+
+      rows += page.length;
+      for (const name of page) if (name) names.add(name);
+    } while (await goToNextPage(findSourceGrid));
+
+    if (total > 0 && rows !== total) fail(`Banka listesi tam okunamadı (${rows}/${total} satır)`);
+
+    return names;
   }
 
   // Tablo sayfalanmış olabilir; hiçbir kayıt atlanmasın ve sayfa değiştirme
@@ -799,14 +1012,17 @@
     if (!target || target.classList.contains('dx-selection')) return;
 
     const label = textOf(target);
+    const before = firstDataRow(findGrid());
     target.click();
 
-    // Seçimin kanıtı, şeritteki işaretin hedef boyuta geçmesidir.
+    // Seçimin kanıtı, şeritteki işaretin hedef boyuta geçmesi ve satırların
+    // yeniden çizilmesidir (bkz. rowsRedrawn).
     await waitFor(() => {
       const grid = findGrid();
       const current = grid && gridPager(grid)?.querySelector('.dx-page-size.dx-selection');
-      return current && textOf(current) === label;
-    }, 6000);
+      const first = firstDataRow(grid);
+      return current && textOf(current) === label && !!first && first !== before;
+    }, 15000);
 
     await sleep(400);
   }
@@ -883,11 +1099,8 @@
 
     step('Banka listesi alınıyor');
 
-    await expandGridPages(findSourceGrid);
-    if (sourceRowsIncomplete(findSourceGrid())) fail('Banka listesi eksik geldi');
-
-    const banks = readBanks();
-    if (!banks || banks.size === 0) fail('Banka kaydı bulunamadı');
+    const banks = await readSourceBanks();
+    if (banks.size === 0) fail('Banka kaydı bulunamadı');
 
     // Liste hem çalıştırma boyunca RAM'de tutulur hem de eklentinin geçici
     // belleğine (chrome.storage.session) yazılır. Seçim adımı ikisini de
@@ -996,16 +1209,72 @@
     return !findBankSelectGrid();
   }
 
+  // Banka Seç listesi de sayfalıdır (ölçüm 2026-09-21: sayfa başına 25, üç
+  // sayfa, 58 banka). Eşleştirme listenin tamamına bakmalıdır; ilk sayfada
+  // olmayan bir banka "listede yok" sanılırdı. Adlar bütün sayfalardan okunur,
+  // ardından ilk sayfaya dönülür.
+  async function readBankTargets() {
+    if (!await ensureBankGridOpen()) fail('Banka Seç listesi açılmadı');
+
+    // Önceki bir denemeden kalan süzgeç listeyi daraltır.
+    const parts = getGridParts(findBankSelectGrid());
+    if (parts && parts.filterInput.value !== '') {
+      clearCurrentFilter();
+      if (!await waitUntilGridReset(3000)) fail('Banka Seç listesi süzgeci temizlenemedi');
+    }
+
+    await goToPage(findBankSelectGrid, 1);
+
+    const names = new Set();
+
+    do {
+      const grid = findBankSelectGrid();
+      const colIndex = grid && getGridParts(grid)?.colIndex;
+      if (!colIndex) fail('Banka Seç listesi kayboldu');
+
+      for (const row of visibleRows(grid)) {
+        const name = rowBankName(row, colIndex);
+        if (name) names.add(name);
+      }
+    } while (await goToNextPage(findBankSelectGrid));
+
+    await goToPage(findBankSelectGrid, 1);
+
+    return [...names].map(name => ({ name, ...bankForms(name) }));
+  }
+
+  // Sorgu sonucundaki her adı tek bir unvana bağlar, aynı bankanın farklı
+  // yazımlarını birleştirir. Bir ad bile bağlanamazsa hiçbir banka
+  // işaretlenmeden durulur: eksik bir talep hazırlanmamalı. Hata cümlesi
+  // bankanın adını taşır ki kullanıcı onu elle ekleyebilsin.
+  function resolveBanks(sources, targets) {
+    const chosen = [];
+
+    for (const source of sources) {
+      const hits = matchBank(source, targets);
+
+      if (hits.length === 0) fail(`Banka Seç listesinde bulunamadı: ${source}`);
+      if (hits.length > 1) fail(`Banka adı birden çok bankaya uyuyor: ${source}`);
+
+      if (!chosen.includes(hits[0].name)) chosen.push(hits[0].name);
+    }
+    return chosen;
+  }
+
   async function stepSelectBanks() {
     const stored = await requestBanks();
-    const banks = stored.length > 0 ? stored : capturedBanks;
-    if (banks.length === 0) fail('Banka listesi belleğe alınamadı');
+    const sources = stored.length > 0 ? stored : capturedBanks;
+    if (sources.length === 0) fail('Banka listesi belleğe alınamadı');
 
-    stepIndex += 1;
-
-    let done = 0;
     try {
-      for (const sourceName of banks) {
+      step('Bankalar eşleştiriliyor');
+
+      const banks = resolveBanks(sources, await readBankTargets());
+
+      stepIndex += 1;
+
+      let done = 0;
+      for (const target of banks) {
         done += 1;
         send({
           t: 'STEP',
@@ -1014,17 +1283,17 @@
           total: stepTotal
         });
 
-        const result = await selectOneBank(sourceName);
+        const result = await selectOneBank(target);
         if (!result.ok) fail(`Banka seçilemedi (${done}/${banks.length})`);
 
         await sleep(120);
       }
+
+      return banks.length;
     } finally {
       // Başarısızlıkta da açık kalan liste ekranı kapatılır.
       await closeBankGrid();
     }
-
-    return banks.length;
   }
 
   // --- Hesap türleri, ihbarname, talep --------------------------------------
@@ -1093,9 +1362,29 @@
     fail(errorLabel);
   }
 
-  async function stepSelectIhbarname() {
-    step('89/1 haciz ihbarnamesi seçiliyor');
-    await selectRadio('89/1 Haciz İhbarnamesi', '89/1 işaretlenemedi');
+  // Banka talebinin evrak türü; popup'taki "Banka talep türü" seçeneğinden
+  // gelir, öntanımlısı 89/1'dir. radio, Talep Gönder ekranındaki seçeneğin
+  // etiketidir (ölçüm 2026-09-21: Haciz Müzekkeresi, 89/1, 89/2, 89/3 Haciz
+  // İhbarnamesi). Müzekkere seçilince formda başka hiçbir alan değişmiyor;
+  // akışın geri kalanı iki türde de aynıdır.
+  const BANKA_EVRAK = {
+    ihbarname: {
+      radio: '89/1 Haciz İhbarnamesi',
+      step: '89/1 haciz ihbarnamesi seçiliyor',
+      error: '89/1 işaretlenemedi',
+      note: '89/1 haciz talebi'
+    },
+    muzekkere: {
+      radio: 'Haciz Müzekkeresi',
+      step: 'Haciz müzekkeresi seçiliyor',
+      error: 'Haciz müzekkeresi işaretlenemedi',
+      note: 'haciz müzekkeresi talebi'
+    }
+  };
+
+  async function stepSelectBankaEvrak(evrak) {
+    step(evrak.step);
+    await selectRadio(evrak.radio, evrak.error);
   }
 
   const findEvrakOlusturButton = () =>
@@ -1285,45 +1574,8 @@
       .filter(isVisible)
       .find(el => textOf(el.querySelector('.dx-popup-title')) === 'Haciz Şerhi') || null;
 
-  // Sayfalayıcı "Sayfa 1 / 2 (137 Kayıt)" biçiminde toplam kayıt sayısı yazar.
-  function gridRecordCount(grid) {
-    const info = grid && gridPager(grid)?.querySelector('.dx-info');
-    const match = info && textOf(info).match(/\((\d+)/);
-    return match ? Number(match[1]) : 0;
-  }
-
-  // Sayfa boyutu en büyüğe çekilse de kayıt sayısı taşabilir. Çok sayfalı
-  // listelerde sayfalayıcı araya "..." koyup yalnız bir pencere gösterir ve
-  // şeridin son öğesi SON sayfadır; bu yüzden sıradaki sayfa konuma göre değil
-  // numarasına göre aranır. Aksi hâlde beşinci sayfadan sonuncuya atlanabilir.
-  async function goToNextPage() {
-    const grid = findHacizGrid();
-    const pager = grid && gridPager(grid);
-    if (!pager) return false;
-
-    const current = Number(textOf(pager.querySelector('.dx-page.dx-selection')));
-    if (!current) return false;
-
-    const label = String(current + 1);
-    const target = [...pager.querySelectorAll('.dx-page')]
-      .filter(isVisible)
-      .find(el => textOf(el) === label);
-    if (!target) return false;
-
-    await waitForLoaderGone();
-    target.click();
-
-    const moved = await waitFor(() => {
-      const next = findHacizGrid();
-      const selected = next && gridPager(next)?.querySelector('.dx-page.dx-selection');
-      return selected && textOf(selected) === label;
-    }, 8000);
-
-    if (!moved) fail('Sonraki sayfaya geçilemedi');
-
-    await sleep(600);
-    return true;
-  }
+  // Kayıt sayısı ve sayfa geçişi banka bölümündeki ortak yardımcılarla
+  // yapılır (gridRecordCount, goToNextPage).
 
   // Satırdaki düğmeye basıldıktan sonrasını yürütür: varsa haciz şerhi
   // penceresi, ardından "Talep eklendi." kutusu.
@@ -1518,7 +1770,7 @@
         await sleep(200);
       }
 
-      if (!await goToNextPage()) break;
+      if (!await goToNextPage(findHacizGrid)) break;
     }
 
     // Sayfalayıcının söylediği sayıya ulaşılamadıysa eksik bir talep hazırlanmış
@@ -1684,7 +1936,7 @@
     }
   }
 
-  async function runBulkFlow(allowPaid, types) {
+  async function runBulkFlow(allowPaid, types, bankaEvrak) {
     // Türler popup'tan gelir. Eski bir popup'tan tür listesi hiç gelmezse
     // akış eskisi gibi dördünü de çalıştırır.
     const chosen = Array.isArray(types) && types.length > 0 ? types : BULK_TYPES;
@@ -1695,9 +1947,9 @@
     const withBanka = chosen.includes('banka');
 
     // Her sorgu bölümü 4 adım (kart, sorgu, hazırlık, kayıt sayacı), banka
-    // bölümü 10 adım. Evrak bölümü normalde 2 adımdır; banka bölümü Talep
+    // bölümü 11 adım. Evrak bölümü normalde 2 adımdır; banka bölümü Talep
     // Gönder ekranında bittiği için o sekmeyi açma adımı orada düşer.
-    stepTotal = queries.length * 4 + (withBanka ? 11 : 2);
+    stepTotal = queries.length * 4 + (withBanka ? 12 : 2);
 
     let failed = 0;
 
@@ -1739,13 +1991,13 @@
         const selected = await stepSelectBanks();
 
         await stepSelectAccountTypes();
-        await stepSelectIhbarname();
+        await stepSelectBankaEvrak(bankaEvrak);
         await stepAddTalep();
 
         prepared += selected;
         counts.push(`Banka ${selected}`);
         stage('banka', 'Banka', 'done', withCost(
-          `${selected} banka için 89/1 haciz talebi eklendi`
+          `${selected} banka için ${bankaEvrak.note} eklendi`
         ));
       } catch (error) {
         failed += 1;
@@ -1780,7 +2032,11 @@
     paidApproved = false;
 
     try {
-      const result = await runBulkFlow(options.paid === true, options.types);
+      // Tanınmayan ya da hiç gelmeyen değer öntanımlı 89/1 sayılır.
+      const bankaEvrak = options.bankaTalep === 'muzekkere'
+        ? BANKA_EVRAK.muzekkere
+        : BANKA_EVRAK.ihbarname;
+      const result = await runBulkFlow(options.paid === true, options.types, bankaEvrak);
 
       send({ t: 'DONE', label: result.label, detail: result.detail });
     } catch (error) {

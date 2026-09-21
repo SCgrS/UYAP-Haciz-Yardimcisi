@@ -12,7 +12,8 @@ Eklenti bağımsız bir geliştirici tarafından üretilmiş, yardımcı bir ara
 
 - Bir icra dosyasında, Borçlu Bilgileri sekmesinde takibi kesinleşmiş bir borçlu seçildikten sonra, eklentideki butona basıldığında EGM-TNB, İcra Dosyası ve TAKBİS kartlarını sırayla açıp sorgular; sonuç tablosundaki her satırı "Haciz Talebine Ekle" ile talebe ekler.
 - EGM'de her araç için açılan Haciz Şerhi penceresinde "Haciz" seçeneğini işaretler.
-- Banka sorgusundan çıkan bütün bankaları Talep Gönder sekmesinde tek tek seçer, tüm hesap türlerini işaretler, 89/1 Haciz İhbarnamesi'ni seçip "Talep Ekle"ye basar.
+- Banka sorgusundan çıkan bütün bankaları Talep Gönder sekmesinde tek tek seçer, tüm hesap türlerini işaretler, seçime göre 89/1 Haciz İhbarnamesi'ni ya da Haciz Müzekkeresi'ni işaretleyip "Talep Ekle"ye basar.
+- Kurum borçlularda sonuç listesi uzun olur (aynı banka her hesap için ayrı satırda, adlar kesik ya da Türkçe harfsiz yazılı). Listenin bütün sayfalarını okur, her adı Banka Seç listesindeki tek bir bankaya bağlar ve her bankayı bir kez seçer.
 - En sonda "Talep Evrakı Oluştur" düğmesine basar; evrak indirilir ve akış orada durur.
 - Hangi bölümün ne yaptığını (kaç kayıt eklendi, neden eklenmedi) canlı bir listede yazar. Bir bölüm takılırsa durmaz, sıradaki bölüme geçer.
 - UYAP bir kutuyla engellediğinde (60 dakika sınırı, yetersiz bakiye, saat penceresi, kurum borçlusu) kutunun cümlesini olduğu gibi gösterir.
@@ -55,7 +56,7 @@ okuna basın.
 
 İşlem sürerken sayfada bir yere tıklamayın; sıralamayı sekteye uğratabilirsiniz.
 
-Kurulumdan sonra yapılacak bir ayar yoktur: dört haciz türü de seçili, ücretli sorgu onayı kapalı başlar. Eklenti, üyelik, e-posta ya da ücret istemez.
+Kurulumdan sonra yapılacak bir ayar yoktur: dört haciz türü de seçili, ücretli sorgu onayı kapalı, banka talebi 89/1 olarak başlar. Eklenti, üyelik, e-posta ya da ücret istemez.
 
 ---
 
@@ -63,6 +64,7 @@ Kurulumdan sonra yapılacak bir ayar yoktur: dört haciz türü de seçili, ücr
 
 - **EGM / İcra dosyası / TAKBİS / Banka:** Hangi türlerin hazırlanacağı. Dördü de varsayılan olarak açıktır; tiki kaldırılan tür hiç sorgulanmaz.
 - **Ücretli sorguyu onayla:** Ücretsiz hak bittiğinde UYAP'ın açtığı "... ücret alınacaktır" kutusunu onaylar. Varsayılan olarak KAPALIDIR; kapalıyken kutu İptal ile kapatılır ve o bölüm geçilir.
+- **Banka talep türü:** Banka haczi talebinin evrak türü: **Haciz müzekkeresi** ya da **89/1 ihbarnamesi**. Yalnız biri seçilebilir; varsayılan 89/1'dir.
 - **Yeni Sorgu Yap:** Ekranda duran sonucu temizleyip durumu Hazır'a döndürür.
 - Koyu / açık mod.
 
@@ -73,7 +75,7 @@ Kurulumdan sonra yapılacak bir ayar yoktur: dört haciz türü de seçili, ücr
 - "Evrak Gönder"e basmaz; talebi icra dairesine göndermez.
 - Ödeme türü seçmez, ödeme ekranını açmaz.
 - İki düğmeli hiçbir onay kutusuna kendiliğinden dokunmaz. Ücret kutusuna yalnız siz seçeneklerden onay verdiğinizde basar.
-- Emin olunamayan hiçbir bankayı işaretlemez; eşleşmeyen banka olursa banka bölümü durur.
+- Emin olunamayan hiçbir bankayı işaretlemez; Banka Seç listesinde bulunamayan ya da birden çok bankaya uyan bir ad çıkarsa hiçbir banka işaretlenmeden banka bölümü durur ve o adı yazar.
 - Sorgu sonucunun bir kısmını ekleyip kalanını atlamaz; beklenen kayıt sayısına ulaşılamazsa o bölüm hata ile durur.
 - Gönderilecek talebin doğruluğundan talebi gönderen sorumludur.
 

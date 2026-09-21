@@ -32,7 +32,8 @@
       toPage({
         t: 'START',
         types: message.types,
-        paid: message.paid
+        paid: message.paid,
+        bankaTalep: message.bankaTalep
       });
     }
   });

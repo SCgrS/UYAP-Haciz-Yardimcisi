@@ -1,14 +1,14 @@
 // Popup: tek düğme, haciz türü tikleri, canlı adım göstergesi ve tema.
 //
 // Burada dosya/taraf verisi tutulmaz. chrome.storage.local yalnız tercihleri
-// (tema, haciz türü tikleri, ücret onayı) saklar. Adım durumu
+// (tema, haciz türü tikleri, ücret onayı, banka talebinin evrak türü) saklar. Adım durumu
 // chrome.storage.session'dadır.
 'use strict';
 
 // background.js ile aynı numara. Tutmuyorsa Chrome hâlâ eklentinin eski
 // sürümünü çalıştırıyordur ve popup'ta yapılan seçimler sayfaya ulaşmaz;
 // böyle bir durumda iş hiç başlatılmaz (bkz. background.js'teki açıklama).
-const PROTOCOL = 2;
+const PROTOCOL = 3;
 
 const PROGRESS_KEY = 'ubh_progress';
 const PREFS_KEY = 'ubh_prefs';
@@ -43,13 +43,20 @@ const el = {
 
 // --- Tercihler --------------------------------------------------------------
 
+// Banka talebinin evrak türü. İkisinden biri daima seçilidir.
+const BANKA_TALEP = ['ihbarname', 'muzekkere'];
+
 // Dört haciz türü de öntanımlı olarak tiklidir: olağan kullanım hepsini
 // hazırlamaktır, tik kaldırmak istisnadır. Ücretli sorgu onayı ise para
-// harcattığı için öntanımlı olarak kapalıdır.
+// harcattığı için öntanımlı olarak kapalıdır. Banka talebi öntanımlı olarak
+// 89/1 haciz ihbarnamesidir.
 function defaultPrefs() {
   return {
     theme: 'light',
-    toplu: { paid: false, egm: true, icra: true, takbis: true, banka: true }
+    toplu: {
+      paid: false, egm: true, icra: true, takbis: true, banka: true,
+      bankaTalep: 'ihbarname'
+    }
   };
 }
 
@@ -58,9 +65,12 @@ let prefs = defaultPrefs();
 function applyPrefs() {
   document.documentElement.dataset.theme = prefs.theme;
 
+  // Tik kutuları açık/kapalı değer taşır; radyo düğmeleri (banka talebi)
+  // seçili seçeneğin adını.
   for (const input of document.querySelectorAll('[data-opt]')) {
     const [group, key] = input.dataset.opt.split('.');
-    input.checked = !!prefs[group]?.[key];
+    const value = prefs[group]?.[key];
+    input.checked = input.type === 'radio' ? value === input.value : !!value;
   }
 }
 
@@ -77,6 +87,9 @@ async function loadPrefs() {
   if (saved) {
     if (saved.theme === 'dark' || saved.theme === 'light') prefs.theme = saved.theme;
     prefs.toplu = { ...defaultPrefs().toplu, ...(saved.toplu || {}) };
+    if (!BANKA_TALEP.includes(prefs.toplu.bankaTalep)) {
+      prefs.toplu.bankaTalep = defaultPrefs().toplu.bankaTalep;
+    }
   }
   applyPrefs();
 }
@@ -211,9 +224,11 @@ el.theme.addEventListener('click', () => {
 });
 
 for (const input of document.querySelectorAll('[data-opt]')) {
+  // Radyo düğmesinde change yalnız yeni seçilen seçenekte tetiklenir; diğerinin
+  // tiki tarayıcı tarafından kaldırılır.
   input.addEventListener('change', () => {
     const [group, key] = input.dataset.opt.split('.');
-    prefs[group][key] = input.checked;
+    prefs[group][key] = input.type === 'radio' ? input.value : input.checked;
     savePrefs();
   });
 }
@@ -277,7 +292,8 @@ el.start.addEventListener('click', async () => {
       type: 'UBH_START',
       tabId: tab.id,
       types,
-      paid: prefs.toplu.paid === true
+      paid: prefs.toplu.paid === true,
+      bankaTalep: prefs.toplu.bankaTalep
     });
   } catch (_) {
     render({ state: 'error', label: 'Bir şeyler ters gitti' });

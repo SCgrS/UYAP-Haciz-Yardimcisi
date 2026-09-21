@@ -101,6 +101,35 @@
           </span>
           <span class="check__label">Ücretli sorguyu onayla</span>
         </label>
+
+        <!-- Banka talebinin evrak türü de ayrı bir karardır: çizgiyle ayrılır.
+             İkisi aynı anda seçilemez; bu yüzden girdiler radyo düğmesidir,
+             yalnız görünüşleri tik kutusudur. Öntanımlısı 89/1. -->
+        <div class="evrak check--sep" role="radiogroup" aria-labelledby="evrak-title">
+          <div id="evrak-title" class="evrak__title">Banka talep türü</div>
+          <div class="picks">
+            <label class="check">
+              <input type="radio" name="banka-talep" value="muzekkere" data-opt="toplu.bankaTalep">
+              <span class="check__box">
+                <svg viewBox="0 0 24 24" width="10" height="10" aria-hidden="true">
+                  <path d="m5 12 5 5L19 7" fill="none" stroke="currentColor" stroke-width="3"
+                        stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+              <span class="check__label">Haciz müzekkeresi</span>
+            </label>
+            <label class="check">
+              <input type="radio" name="banka-talep" value="ihbarname" data-opt="toplu.bankaTalep">
+              <span class="check__box">
+                <svg viewBox="0 0 24 24" width="10" height="10" aria-hidden="true">
+                  <path d="m5 12 5 5L19 7" fill="none" stroke="currentColor" stroke-width="3"
+                        stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+              <span class="check__label">89/1 ihbarnamesi</span>
+            </label>
+          </div>
+        </div>
       </div>
 
       <!-- Düğme bölümün en altındadır: önce ne yapılacağı seçilir, sonra basılır. -->
@@ -134,6 +163,11 @@
         <p>Ücretsiz hak bittiğinde UYAP ücret onayı sorar. Eklenti bu kutuya
         yalnız &#8220;Ücretli sorguyu onayla&#8221; tikliyken basar; tik
         varsayılan olarak kapalıdır.</p>
+
+        <b>Banka talep türü</b>
+        <p>Banka haczi talebi 89/1 haciz ihbarnamesi ya da haciz müzekkeresi
+        olarak hazırlanır. İkisinden yalnız biri seçilebilir; varsayılan
+        89/1&#8217;dir.</p>
       </div>
     </details>
   </main>
