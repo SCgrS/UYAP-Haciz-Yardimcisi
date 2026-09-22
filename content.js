@@ -97,7 +97,9 @@
   // Bu yüzden önce Banka Seç listesinin TAMAMI okunur, her ad oradaki tek bir
   // unvana bağlanır. Karşılaştırma harf farkına, boşluğa, noktalamaya ve şirket
   // ekine bakmaz. Hiçbir unvana ya da birden çok unvana uyan bir ad çıkarsa
-  // tahmin yürütülmez: eksik talep hazırlanmaz, akış o adı söyleyerek durur.
+  // tahmin yürütülmez: o ad işaretlenmeden atlanır, adıyla uyarıya düşer ve
+  // eşleşen bankalarla devam edilir (bkz. resolveBanks). Eşleşen ad kalmazsa
+  // banka bölümü durur.
 
   const ASCII_LETTERS = { Ç: 'C', Ğ: 'G', İ: 'I', Ö: 'O', Ş: 'S', Ü: 'U' };
 

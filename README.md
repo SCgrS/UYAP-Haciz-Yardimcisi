@@ -76,9 +76,9 @@ Kurulumdan sonra yapılacak bir ayar yoktur: dört haciz türü de seçili, ücr
 - "Evrak Gönder"e basmaz; talebi icra dairesine göndermez.
 - Ödeme türü seçmez, ödeme ekranını açmaz.
 - İki düğmeli hiçbir onay kutusuna kendiliğinden dokunmaz. Ücret kutusuna yalnız siz seçeneklerden onay verdiğinizde basar.
-- Emin olunamayan hiçbir bankayı işaretlemez; Banka Seç listesinde bulunamayan ya da birden çok bankaya uyan ad işaretlenmeden atlanır. Hiçbiri eşleşmezse banka bölümü durur.
+- Tek bir bankaya bağlayamadığı adı işaretlemez: Banka Seç listesinde karşılığı bulunmayan ya da birden çok bankaya uyan kurum işaretlenmeden atlanır. Eşleşen ad kalmazsa banka bölümü hata ile biter.
 - Atladığı hiçbir şeyi sessizce atlamaz; atlanan kurumlar adlarıyla, bölüm satırının altında uyarı olarak yazılır.
-- Sorgu sonucunun bir kısmını ekleyip kalanını atlamaz; beklenen kayıt sayısına ulaşılamazsa o bölüm hata ile durur.
+- Sorgu sonucunu eksik okumaz; okunan satır sayısı UYAP'ın yazdığı kayıt sayısını tutmazsa ya da çıkan kayıtların tamamı talebe eklenemezse o bölüm hata ile durur.
 - Gönderilecek talebin doğruluğundan talebi gönderen sorumludur.
 
 ---
