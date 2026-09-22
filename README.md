@@ -1,6 +1,6 @@
 # UYAP Haciz Yardımcısı
 
-UYAP Avukat Portalı'nda, takibin kesinleştiği bir borçlu seçildiğinde çalışır. Tercihe göre EGM, icra dosyası, TAKBİS ve banka hacizlerini tek tek ya da toplu şekilde hazırlayan bir Chrome eklentisidir. Sorguları sırayla yapar, çıkan kayıtların hepsini haciz talebine ekler ve en sonda tek bir talep evrakı oluşturur. Talebi göndermez; son kontrol, imza ve gönderme kullanıcıda kalır.
+UYAP Avukat Portalı'nda, takibin kesinleştiği bir borçlu seçildiğinde çalışır. Seçtiğiniz haciz türlerini (EGM, icra dosyası, TAKBİS, banka) tek akışta hazırlayan bir Chrome eklentisidir. Sorguları sırayla yapar, çıkan kayıtları haciz talebine ekler ve en sonda tek bir talep evrakı oluşturur. Talebi göndermez; son kontrol, imza ve gönderme kullanıcıda kalır.
 
 Eklenti hiçbir ağ isteği yapmaz; analitik, telemetri ve uzaktan kod yükleme yoktur, hiçbir yere veri göndermez. Sayfada yalnızca düğme, sekme ve etiket adlarını arar; dosya numarası, TCKN/VKN, hesap numarası, bakiye gibi bilgileri OKUMAZ. Kullanıcının kendi diskine dahi veri yazmaz: Banka adları kullanıcının Chrome'unun geçici belleğinde tutulur ve iş bitince, yeni sorgulama yapıldığında veya en geç Chrome kapanınca kalıcı olarak Chrome geçici belleğinden silinir.
 
@@ -12,9 +12,9 @@ Eklenti bağımsız bir geliştirici tarafından üretilmiş, yardımcı bir ara
 
 - Bir icra dosyasında, Borçlu Bilgileri sekmesinde takibi kesinleşmiş bir borçlu seçildikten sonra, eklentideki butona basıldığında EGM-TNB, İcra Dosyası ve TAKBİS kartlarını sırayla açıp sorgular; sonuç tablosundaki her satırı "Haciz Talebine Ekle" ile talebe ekler.
 - EGM'de her araç için açılan Haciz Şerhi penceresinde "Haciz" seçeneğini işaretler.
-- Banka sorgusundan çıkan bütün bankaları Talep Gönder sekmesinde tek tek seçer, tüm hesap türlerini işaretler, seçime göre 89/1 Haciz İhbarnamesi'ni ya da Haciz Müzekkeresi'ni işaretleyip "Talep Ekle"ye basar.
-- Kurum borçlularda sonuç listesi uzun olur (aynı banka her hesap için ayrı satırda, adlar kesik ya da Türkçe harfsiz yazılı). Listenin bütün sayfalarını okur, her adı Banka Seç listesindeki tek bir bankaya bağlar ve her bankayı bir kez seçer. Banka Seç listesinde karşılığı olmayan kurumu (örneğin PTT) atlar, kalanlarla devam eder ve atladığı adları Banka satırının altında uyarı olarak yazar.
-- Hazırlanan talebin sorgu sonucunu tam karşıladığı ancak talebe bakılarak bilinir; eklentinin "Nasıl kullanılır?" bölümünde kurum banka sonuçlarının taleple teyit edilmesi gerektiği yazılıdır.
+- Banka sorgusundan çıkan kurum adlarını Banka Seç listesindeki unvanlara bağlar; eşleştirdiği bankaları Talep Gönder sekmesinde tek tek seçer, tüm hesap türlerini işaretler, seçime göre 89/1 Haciz İhbarnamesi'ni ya da Haciz Müzekkeresi'ni işaretleyip "Talep Ekle"ye basar.
+- Kurum borçlularda sonuç listesi uzun olur (aynı banka her hesap için ayrı satırda, adlar kesik ya da Türkçe harfsiz yazılı). Listenin bütün sayfalarını okur, her adı Banka Seç listesindeki tek bir bankaya bağlar ve her bankayı bir kez seçer. Banka Seç listesinde karşılığı bulunmayan ya da birden çok bankaya uyan kurumu (örneğin PTT) işaretlemeden atlar, kalan bankalarla devam eder ve atladığı adları sonuç listesinde uyarı olarak yazar.
+- Banka bölümü bittiğinde hazırlanan talebi sorgu sonucuyla karşılaştırınız.
 - En sonda "Talep Evrakı Oluştur" düğmesine basar; evrak indirilir ve akış orada durur.
 - Hangi bölümün ne yaptığını (kaç kayıt eklendi, neden eklenmedi) canlı bir listede yazar. Bir bölüm takılırsa durmaz, sıradaki bölüme geçer.
 - UYAP bir kutuyla engellediğinde (60 dakika sınırı, yetersiz bakiye, saat penceresi, kurum borçlusu) kutunun cümlesini olduğu gibi gösterir.
