@@ -840,6 +840,11 @@
   // para harcadığını sonradan da görebilmeli.
   let paidApproved = false;
 
+  // Banka Seç listesinde karşılığı bulunamadığı için atlanan kurumlar
+  // ({ name, reason }). Banka bölümü sonradan takılsa da uyarı satırı
+  // yazılabilsin diye eşleştirme adımının dışında, akışın belleğinde durur.
+  let skippedBanks = [];
+
   function step(label) {
     stepIndex += 1;
     send({ t: 'STEP', label, index: stepIndex, total: stepTotal });
@@ -1244,21 +1249,35 @@
   }
 
   // Sorgu sonucundaki her adı tek bir unvana bağlar, aynı bankanın farklı
-  // yazımlarını birleştirir. Bir ad bile bağlanamazsa hiçbir banka
-  // işaretlenmeden durulur: eksik bir talep hazırlanmamalı. Hata cümlesi
-  // bankanın adını taşır ki kullanıcı onu elle ekleyebilsin.
+  // yazımlarını birleştirir. Bağlanamayan ad akışı DURDURMAZ: o kurum atlanır,
+  // adı ve nedeni geri verilir, bölümün satırının altına uyarı olarak düşer.
+  // Eskiden tek bir ad bağlanamayınca banka bölümünün tamamı hata veriyordu;
+  // ölçüm (2026-09-22, kurum borçlu): Banka Seç listesinde karşılığı olmayan
+  // "T.C.POSTA VE TELGRAF" yüzünden eşleşen bankaların talebi de
+  // hazırlanmıyordu. Atlanan kurum adıyla yazılır ki kullanıcı elle
+  // ekleyebilsin.
   function resolveBanks(sources, targets) {
     const chosen = [];
+    const skipped = [];
 
     for (const source of sources) {
       const hits = matchBank(source, targets);
 
-      if (hits.length === 0) fail(`Banka Seç listesinde bulunamadı: ${source}`);
-      if (hits.length > 1) fail(`Banka adı birden çok bankaya uyuyor: ${source}`);
+      if (hits.length === 0) {
+        skipped.push({ name: source, reason: 'yok' });
+        continue;
+      }
+
+      // Birden çok bankaya uyan ad da işaretlenmez: hangisi olduğu belli
+      // değilken seçmek yanlış bankaya haciz göndermek olur.
+      if (hits.length > 1) {
+        skipped.push({ name: source, reason: 'belirsiz' });
+        continue;
+      }
 
       if (!chosen.includes(hits[0].name)) chosen.push(hits[0].name);
     }
-    return chosen;
+    return { chosen, skipped };
   }
 
   async function stepSelectBanks() {
@@ -1269,7 +1288,15 @@
     try {
       step('Bankalar eşleştiriliyor');
 
-      const banks = resolveBanks(sources, await readBankTargets());
+      const { chosen: banks, skipped } = resolveBanks(sources, await readBankTargets());
+
+      // Atlananlar bölüm yarıda kalsa da yazılabilsin diye akışın belleğinde
+      // tutulur (bkz. bankaWarnings).
+      skippedBanks = skipped;
+
+      // Hiçbir ad bağlanamadıysa işaretlenecek banka kalmaz; boş bir talep
+      // hazırlamak yerine bölüm burada durur.
+      if (banks.length === 0) fail('Sorgudaki hiçbir kurum Banka Seç listesinde bulunamadı');
 
       stepIndex += 1;
 
@@ -1819,9 +1846,37 @@
 
   // Bölüm satırları popup'ta ortak durum kutucuğunun altında ayrı bir liste
   // olarak görünür. Her satır bir cümleyle ne olduğunu söyler: kaç kayıt
-  // eklendi, neden eklenmedi, nerede takıldı.
-  const stage = (key, name, state, note = '') =>
-    send({ t: 'STAGE', key, name, state, note });
+  // eklendi, neden eklenmedi, nerede takıldı. Bölümün kendisi yürüdüğü hâlde
+  // kullanıcının gözden geçirmesi gereken bir şey kaldıysa (adı eşleşmediği
+  // için atlanan kurum) bu nota karışmaz, ayrı bir uyarı satırı olarak
+  // altına yazılır.
+  const stage = (key, name, state, note = '', warns = []) =>
+    send({ t: 'STAGE', key, name, state, note, warns });
+
+  // Banka bölümünün uyarı satırları: YALNIZ o çalıştırmada gerçekten olan bir
+  // şey yazılır, atlanan kurumlar. Sonucun talep ile teyit edilmesi gerektiği
+  // her çalıştırmada aynı olduğu için bölüm satırına değil, popup'taki "Nasıl
+  // kullanılır?" bölümüne yazılıdır (bkz. popup.html).
+  function bankaWarnings() {
+    const warns = [];
+
+    const missing = skippedBanks.filter(item => item.reason === 'yok');
+    const ambiguous = skippedBanks.filter(item => item.reason === 'belirsiz');
+
+    if (missing.length > 0) {
+      warns.push(
+        'Banka Seç listesinde bulunamadığı için atlandı: ' +
+        missing.map(item => item.name).join(', ')
+      );
+    }
+    if (ambiguous.length > 0) {
+      warns.push(
+        'Birden çok bankaya uyduğu için atlandı: ' +
+        ambiguous.map(item => item.name).join(', ')
+      );
+    }
+    return warns;
+  }
 
   // Ücret onaylanmışsa nota eklenir: hangi bölümün para harcadığı görünsün.
   const withCost = note => (paidApproved ? `${note} (ücretli sorgu onaylandı)` : note);
@@ -1983,6 +2038,7 @@
     if (withBanka) {
       stage('banka', 'Banka', 'running', 'Sorgulanıyor');
       paidApproved = false;
+      skippedBanks = [];
 
       try {
         await stepQueryBanks(allowPaid);
@@ -1998,10 +2054,10 @@
         counts.push(`Banka ${selected}`);
         stage('banka', 'Banka', 'done', withCost(
           `${selected} banka için ${bankaEvrak.note} eklendi`
-        ));
+        ), bankaWarnings());
       } catch (error) {
         failed += 1;
-        stage('banka', 'Banka', 'error', stopNote(error));
+        stage('banka', 'Banka', 'error', stopNote(error), bankaWarnings());
         await clearOverlays();
       }
     }
@@ -2029,6 +2085,7 @@
 
     stepIndex = 0;
     capturedBanks = [];
+    skippedBanks = [];
     paidApproved = false;
 
     try {

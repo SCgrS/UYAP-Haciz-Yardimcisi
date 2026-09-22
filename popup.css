@@ -270,6 +270,19 @@ html[data-theme="dark"] .ico-moon { display: inline; }
   overflow-wrap: anywhere;
 }
 
+/* Bölüm yürüdüğü hâlde gözden geçirilmesi gereken satır: eşleşmediği için
+   atlanan kurum, banka sonucunun teyit hatırlatması. Notun aksine soluk
+   değildir ve uyarı rengini taşır; bölümün kendisi yeşil bitse de bu satır
+   göze çarpmalıdır. */
+.stage__warn {
+  display: block;
+  margin-top: 2px;
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: var(--warn);
+  overflow-wrap: anywhere;
+}
+
 .stage[data-state="running"] .stage__dot {
   background: var(--accent);
   animation: pulse 1.1s ease-in-out infinite;
@@ -332,9 +345,12 @@ html[data-theme="dark"] .ico-moon { display: inline; }
   margin: 0 0 6px 1px;
 }
 
+/* Bölüm başlığının puntosu, altındaki "Banka talep türü" başlığıyla
+   ortaktır (bkz. .evrak__title): ikisi de aynı düzeyde başlıktır, farklı
+   punto ikisini birbirinin altı gibi gösteriyordu. */
 .grp__title {
   margin: 0;
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1.2;
   font-weight: 700;
   letter-spacing: .06em;
@@ -363,10 +379,12 @@ html[data-theme="dark"] .ico-moon { display: inline; }
 }
 
 /* Banka talebinin evrak türü: iki seçenekten biri daima seçilidir. */
-/* Başlık, altındaki seçeneklerden (.check__label, 11.5px) bir punto büyüktür. */
+/* Başlık, bölüm başlığıyla (.grp__title) aynı puntodadır; ikisi de kendi
+   seçenek kümesinin üstünde duran başlıktır. Büyük harf ve harf aralığı
+   yalnız bölüm başlığındadır: bu satır bir cümledir. */
 .evrak__title {
   margin: 0 0 5px 1px;
-  font-size: 12.5px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--muted);
 }

@@ -97,7 +97,9 @@ async function loadPrefs() {
 // --- Durum ------------------------------------------------------------------
 
 // Her bölüm için bir satır: durum noktası, bölümün adı ve gerekiyorsa altında
-// tek satırlık not ("Araç kaydı yok", engelin adı ...). Metin daima
+// tek satırlık not ("Araç kaydı yok", engelin adı ...). Notun altına, bölüm
+// yürümüş olsa da gözden geçirilmesi gereken uyarılar düşebilir: eşleşmediği
+// için atlanan kurumlar, banka sonucunun teyit hatırlatması. Metin daima
 // textContent ile yazılır; sayfadan gelen bir cümle biçimlendirme olarak
 // yorumlanmaz.
 function stageRow(item) {
@@ -124,6 +126,15 @@ function stageRow(item) {
     body.append(note);
   }
 
+  for (const text of Array.isArray(item.warns) ? item.warns : []) {
+    if (!text) continue;
+
+    const warn = document.createElement('span');
+    warn.className = 'stage__warn';
+    warn.textContent = text;
+    body.append(warn);
+  }
+
   row.append(body);
   return row;
 }
@@ -140,7 +151,7 @@ let stagesSignature = null;
 
 function renderStages(stages) {
   const signature = JSON.stringify(
-    stages.map(item => [item.key, item.name, item.state, item.note])
+    stages.map(item => [item.key, item.name, item.state, item.note, item.warns])
   );
   if (signature === stagesSignature) return;
   stagesSignature = signature;

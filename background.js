@@ -247,7 +247,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         key: message.key,
         name: message.name,
         state: message.state,
-        note: message.note || ''
+        note: message.note || '',
+        // Bölüm yürüse de kullanıcının gözden geçirmesi gereken satırlar:
+        // atlanan kurumlar, banka sonucunun teyit hatırlatması.
+        warns: Array.isArray(message.warns) ? message.warns : []
       }).then(() => sendResponse({ ok: true }));
       return true;
 

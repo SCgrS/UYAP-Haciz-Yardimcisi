@@ -13,7 +13,8 @@ Eklenti bağımsız bir geliştirici tarafından üretilmiş, yardımcı bir ara
 - Bir icra dosyasında, Borçlu Bilgileri sekmesinde takibi kesinleşmiş bir borçlu seçildikten sonra, eklentideki butona basıldığında EGM-TNB, İcra Dosyası ve TAKBİS kartlarını sırayla açıp sorgular; sonuç tablosundaki her satırı "Haciz Talebine Ekle" ile talebe ekler.
 - EGM'de her araç için açılan Haciz Şerhi penceresinde "Haciz" seçeneğini işaretler.
 - Banka sorgusundan çıkan bütün bankaları Talep Gönder sekmesinde tek tek seçer, tüm hesap türlerini işaretler, seçime göre 89/1 Haciz İhbarnamesi'ni ya da Haciz Müzekkeresi'ni işaretleyip "Talep Ekle"ye basar.
-- Kurum borçlularda sonuç listesi uzun olur (aynı banka her hesap için ayrı satırda, adlar kesik ya da Türkçe harfsiz yazılı). Listenin bütün sayfalarını okur, her adı Banka Seç listesindeki tek bir bankaya bağlar ve her bankayı bir kez seçer.
+- Kurum borçlularda sonuç listesi uzun olur (aynı banka her hesap için ayrı satırda, adlar kesik ya da Türkçe harfsiz yazılı). Listenin bütün sayfalarını okur, her adı Banka Seç listesindeki tek bir bankaya bağlar ve her bankayı bir kez seçer. Banka Seç listesinde karşılığı olmayan kurumu (örneğin PTT) atlar, kalanlarla devam eder ve atladığı adları Banka satırının altında uyarı olarak yazar.
+- Hazırlanan talebin sorgu sonucunu tam karşıladığı ancak talebe bakılarak bilinir; eklentinin "Nasıl kullanılır?" bölümünde kurum banka sonuçlarının taleple teyit edilmesi gerektiği yazılıdır.
 - En sonda "Talep Evrakı Oluştur" düğmesine basar; evrak indirilir ve akış orada durur.
 - Hangi bölümün ne yaptığını (kaç kayıt eklendi, neden eklenmedi) canlı bir listede yazar. Bir bölüm takılırsa durmaz, sıradaki bölüme geçer.
 - UYAP bir kutuyla engellediğinde (60 dakika sınırı, yetersiz bakiye, saat penceresi, kurum borçlusu) kutunun cümlesini olduğu gibi gösterir.
@@ -75,7 +76,8 @@ Kurulumdan sonra yapılacak bir ayar yoktur: dört haciz türü de seçili, ücr
 - "Evrak Gönder"e basmaz; talebi icra dairesine göndermez.
 - Ödeme türü seçmez, ödeme ekranını açmaz.
 - İki düğmeli hiçbir onay kutusuna kendiliğinden dokunmaz. Ücret kutusuna yalnız siz seçeneklerden onay verdiğinizde basar.
-- Emin olunamayan hiçbir bankayı işaretlemez; Banka Seç listesinde bulunamayan ya da birden çok bankaya uyan bir ad çıkarsa hiçbir banka işaretlenmeden banka bölümü durur ve o adı yazar.
+- Emin olunamayan hiçbir bankayı işaretlemez; Banka Seç listesinde bulunamayan ya da birden çok bankaya uyan ad işaretlenmeden atlanır. Hiçbiri eşleşmezse banka bölümü durur.
+- Atladığı hiçbir şeyi sessizce atlamaz; atlanan kurumlar adlarıyla, bölüm satırının altında uyarı olarak yazılır.
 - Sorgu sonucunun bir kısmını ekleyip kalanını atlamaz; beklenen kayıt sayısına ulaşılamazsa o bölüm hata ile durur.
 - Gönderilecek talebin doğruluğundan talebi gönderen sorumludur.
 

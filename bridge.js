@@ -76,7 +76,8 @@
           key: message.key,
           name: message.name,
           state: message.state,
-          note: message.note
+          note: message.note,
+          warns: Array.isArray(message.warns) ? message.warns : []
         });
         break;
 
