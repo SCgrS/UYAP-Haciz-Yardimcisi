@@ -25,7 +25,7 @@
 
   const send = message => chrome.runtime.sendMessage(message).catch(() => {});
 
-  chrome.runtime.onMessage.addListener(message => {
+  const onExtensionMessage = message => {
     if (!isCurrent()) return;
 
     if (message?.type === 'UBH_START') {
@@ -36,9 +36,11 @@
         bankaTalep: message.bankaTalep
       });
     }
-  });
+  };
 
-  document.addEventListener(TO_EXT, async event => {
+  chrome.runtime.onMessage.addListener(onExtensionMessage);
+
+  const onPageMessage = async event => {
     if (!isCurrent()) return;
 
     let message;
@@ -97,5 +99,25 @@
         break;
       }
     }
-  });
+  };
+
+  document.addEventListener(TO_EXT, onPageMessage);
+
+  // Yeni kopya yüklenince eskisi dinleyicilerini söker. Susturulmuş kopyalar
+  // her çalıştırmada birikiyor, bellekte kalıyor ve her mesajda boşuna
+  // uyanıyordu (bkz. content.js'in sonu).
+  try {
+    REGISTRY.retire?.();
+  } catch (_) {
+    // Sökülemeyen eski kopya yine de nesil damgasıyla susar.
+  }
+
+  REGISTRY.retire = () => {
+    document.removeEventListener(TO_EXT, onPageMessage);
+    try {
+      chrome.runtime.onMessage.removeListener(onExtensionMessage);
+    } catch (_) {
+      // Eklenti yenilendiyse bu kopyanın chrome.* bağlantısı kopmuştur.
+    }
+  };
 })();

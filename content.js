@@ -1538,14 +1538,26 @@
 
   // innerText sayfayı yeniden ölçtürdüğü için tarama seyreltilir: 120 ms'lik
   // yoklama temposunda sayfanın tamamını her turda okumak arayüzü ağırlaştırır.
-  let lastScan = { at: 0, matches: [] };
+  //
+  // Taramadan yalnız cümle sayısı ve cümlelerin hangi sorgulara ait olduğu
+  // saklanır. Eşleşmelerin kendisi saklanmaz: her eşleşme aranan metnin
+  // tamamını, yani sayfanın bütün yazısını içinde taşır. Eskiden bu metin bir
+  // sonraki taramaya kadar, çalıştırma bittikten sonra da bellekte kalıyordu.
+  let lastScan = { at: 0, count: 0, owners: [] };
 
   function noRecordSentences(force = false) {
     const now = Date.now();
-    if (!force && now - lastScan.at < 500) return lastScan.matches;
+    if (!force && now - lastScan.at < 500) return lastScan;
 
-    lastScan = { at: now, matches: [...normalize(resultText()).matchAll(EMPTY_RESULT)] };
-    return lastScan.matches;
+    const matches = [...normalize(resultText()).matchAll(EMPTY_RESULT)];
+
+    lastScan = {
+      at: now,
+      count: matches.length,
+      owners: Object.keys(EMPTY_OWNERS)
+        .filter(key => matches.some(match => EMPTY_OWNERS[key].test(match[1] || '')))
+    };
+    return lastScan;
   }
 
   // baseline verilirse, sorgudan ÖNCE ekranda kaç cümle olduğunu söyler:
@@ -1553,34 +1565,39 @@
   // zaten doğrudan sahibine bağlanır. İkisi de tutmuyorsa cümle başkasınındır
   // ve bu sorgu için "kayıt yok" sayılmaz.
   function queryReportedNoRecord(flowKey, baseline = -1) {
-    const matches = noRecordSentences();
+    const scan = noRecordSentences();
 
-    if (baseline >= 0 && matches.length > baseline) return true;
+    if (baseline >= 0 && scan.count > baseline) return true;
 
-    const mine = EMPTY_OWNERS[flowKey];
-    return matches.some(match => mine.test(match[1] || ''));
+    return scan.owners.includes(flowKey);
   }
 
   // Ücretsiz sorgu hakkı bittiğinde UYAP "... ücret alınacaktır" diye İptal /
   // Tamam düğmeli bir kutu açar. Cümlesi tutarın kendisini içerdiği için
   // olduğu gibi kullanıcıya gösterilir; düğme etiketleri dışarıda kalsın diye
   // metin gövdeden okunur.
+  //
+  // Kutu, sorgunun cevabı beklenirken her yoklamada (saniyede sekiz kez)
+  // aranır. Dosya penceresi de bir katman olduğundan eskiden her turda onun
+  // bütün metni baştan okunuyordu. Artık bir katmanın metnine ancak iki
+  // düğmesi de varsa bakılır.
   function findFeeDialog() {
-    const popup = [...document.querySelectorAll('.dx-overlay-content')]
-      .filter(isVisible)
-      .find(el => /ücret alınacaktır/i.test(textOf(el)));
+    for (const popup of document.querySelectorAll('.dx-overlay-content')) {
+      if (!isVisible(popup)) continue;
 
-    if (!popup) return null;
+      const confirm = [...popup.querySelectorAll('.dx-button[aria-label="Tamam"]')]
+        .find(isVisible);
+      const cancel = [...popup.querySelectorAll('.dx-button[aria-label="İptal"]')]
+        .find(isVisible);
 
-    const buttons = [...popup.querySelectorAll('.dx-button')].filter(isVisible);
-    const confirm = buttons.find(el => el.getAttribute('aria-label') === 'Tamam');
-    const cancel = buttons.find(el => el.getAttribute('aria-label') === 'İptal');
+      if (!confirm || !cancel) continue;
+      if (!/ücret alınacaktır/i.test(textOf(popup))) continue;
 
-    if (!confirm || !cancel) return null;
+      const message = textOf(popup.querySelector('.dx-popup-content')) || textOf(popup);
 
-    const message = textOf(popup.querySelector('.dx-popup-content')) || textOf(popup);
-
-    return { confirm, cancel, message };
+      return { confirm, cancel, message };
+    }
+    return null;
   }
 
   // Sonuç tablosu, sütun başlıklarına göre değil satırlarındaki ekleme
@@ -1684,7 +1701,7 @@
 
     // Bir önceki sorgunun "...kaydı yok" cümlesi ekranda kalabiliyor. Tıklamadan
     // önceki sayı not edilir ki sonradan düşen cümle onunkinden ayrılabilsin.
-    const baseline = noRecordSentences(true).length;
+    const baseline = noRecordSentences(true).count;
 
     // Şerit akış başlamadan önce zaten açıksa kartın perdesi hâlâ dönüyor
     // olabilir; perde açıkken basılmaz.
@@ -2103,6 +2120,7 @@
       send({ t: 'FAIL', label: stop?.headline || '', detail: stop?.detail || '' });
     } finally {
       capturedBanks = [];
+      skippedBanks = [];
       running = false;
     }
   }
@@ -2152,7 +2170,7 @@
     send({ t: 'RESET' });
   }, 1500);
 
-  document.addEventListener(TO_PAGE, event => {
+  function onExtensionMessage(event) {
     if (!isCurrent()) return;
 
     let message;
@@ -2162,5 +2180,32 @@
       return;
     }
     if (message.t === 'START') run(message);
-  });
+  }
+
+  document.addEventListener(TO_PAGE, onExtensionMessage);
+
+  // --- Yerini yeni kopyaya bırakma ------------------------------------------
+  //
+  // Service worker her çalıştırmadan önce bu dosyayı yeniden yükler. Nesil
+  // damgası eski kopyayı yalnız susturuyordu; sayfadaki dinleyicisi yerinde
+  // kaldığı için kopya bütün değişkenleriyle bellekte duruyordu. Bunların
+  // arasında izleyicinin tuttuğu dosya penceresi de vardı: pencere
+  // kapandıktan sonra da içindeki tablolarla birlikte silinemiyordu. Gün boyu
+  // yenilenmeyen bir UYAP sekmesinde her toplu haciz böyle bir kopya daha
+  // bırakıyordu. Ölçüm (2026-09-27, sahte dosya penceresiyle, 10 çalıştırma):
+  // kapanan 10 pencerenin 52.050 düğümü de bellekte kaldı, yığın 8 MB büyüdü.
+  // Artık yeni kopya yüklenince eskisi dinleyicisini ve zamanlayıcısını söker,
+  // elindeki pencereyi bırakır; onu tutan bir şey kalmaz.
+  try {
+    REGISTRY.retire?.();
+  } catch (_) {
+    // Sökülemeyen eski kopya yine de nesil damgasıyla susar.
+  }
+
+  REGISTRY.retire = () => {
+    clearInterval(watcher);
+    document.removeEventListener(TO_PAGE, onExtensionMessage);
+    watchedFileWindow = null;
+    pendingChange = null;
+  };
 })();
