@@ -99,6 +99,13 @@ Kullanıcının kendi diskine dahi veri yazmaz. Banka adları yalnızca kullanı
 
 ---
 
+## Otomatik denetimler
+
+[![CodeQL Advanced](https://github.com/SCgrS/UYAP-Haciz-Yardimcisi/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/SCgrS/UYAP-Haciz-Yardimcisi/actions/workflows/codeql.yml)\
+[![Dependency Review](https://github.com/SCgrS/UYAP-Haciz-Yardimcisi/actions/workflows/dependency-review.yml/badge.svg?branch=main)](https://github.com/SCgrS/UYAP-Haciz-Yardimcisi/actions/workflows/dependency-review.yml)
+
+---
+
 ## Teşekkür
 
 Bu eklentideki banka haciz ekleme akışı, Raci Çetin Yüksekbaş'ın fikir önerisi üzerine oluşturulmuştur, kendisine teşekkür ederim.
