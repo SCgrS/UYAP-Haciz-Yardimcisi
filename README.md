@@ -11,6 +11,10 @@ imza ve gönderme kullanıcıda kalır.
 Eklenti bağımsız bir geliştirici tarafından üretilmiş, yardımcı bir araçtır. UYAP veya Adalet Bakanlığı tarafından geliştirilmiş bir ürün
 değildir.
 
+## Teşekkür
+
+Bu eklentideki banka haciz ekleme akışı, Raci Çetin Yüksekbaş'ın fikir önerisi üzerine oluşturulmuştur, kendisine teşekkür ederim.
+
 ## Kurulum
 
 Gereken: Bilgisayarda Google Chrome ve UYAP Avukat Portalı'nda açık bir oturum. Eklenti yalnızca https://avukat.uyap.gov.tr sayfalarında
@@ -139,10 +143,6 @@ UYAP Haciz Yardımcısı hiçbir üçüncü taraf pakete bağlı değildir.
 
 [![CodeQL Advanced](https://github.com/SCgrS/UYAP-Haciz-Yardimcisi/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/SCgrS/UYAP-Haciz-Yardimcisi/actions/workflows/codeql.yml)\
 [![Dependency Review](https://github.com/SCgrS/UYAP-Haciz-Yardimcisi/actions/workflows/dependency-review.yml/badge.svg?branch=main)](https://github.com/SCgrS/UYAP-Haciz-Yardimcisi/actions/workflows/dependency-review.yml)
-
-## Teşekkür
-
-Bu eklentideki banka haciz ekleme akışı, Raci Çetin Yüksekbaş'ın fikir önerisi üzerine oluşturulmuştur, kendisine teşekkür ederim.
 
 ---
 
