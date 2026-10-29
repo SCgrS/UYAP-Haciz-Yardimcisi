@@ -12,7 +12,7 @@ Eklenti bağımsız bir geliştirici tarafından üretilmiş, yardımcı bir ara
 değildir.
 
 <p align="center">
-  <img src="docs/ekran-pencere.png" width="90%" alt="Eklenti penceresi koyu ve açık temada, toplu haciz bittikten sonra: Sonuç Tamamlandı ve talep evrakının özeti, EGM, İcra dosyası, TAKBİS ve Banka satırları, bankada atlanan kurumun uyarısı, altta Toplu Haciz seçenekleri">
+  <img src="docs/ekran-pencere.png" width="55%" alt="Eklenti penceresi toplu haciz sürerken: Bankalar seçiliyor, EGM, İcra dosyası ve TAKBİS tamamlandı, Banka sorgulanıyor, altta Toplu Haciz seçenekleri ve geliştirici satırı">
 </p>
 
 ## Teşekkür
