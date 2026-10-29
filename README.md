@@ -17,7 +17,7 @@ değildir.
 
 ## Teşekkür
 
-Bu eklentideki banka haciz ekleme akışı, Raci Çetin Yüksekbaş'ın fikir önerisi üzerine oluşturulmuştur, kendisine teşekkür ederim.
+Bu eklentideki banka haciz ekleme akışı, Raci Çetin Yüksekbaş'ın ([@raciyuksekbas-hub](https://github.com/raciyuksekbas-hub)) fikir önerisi üzerine oluşturulmuştur, kendisine teşekkür ederim.
 
 ## Kurulum
 
