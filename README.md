@@ -11,6 +11,10 @@ imza ve gönderme kullanıcıda kalır.
 Eklenti bağımsız bir geliştirici tarafından üretilmiş, yardımcı bir araçtır. UYAP veya Adalet Bakanlığı tarafından geliştirilmiş bir ürün
 değildir.
 
+<p align="center">
+  <img src="docs/ekran-pencere.png" width="90%" alt="Eklenti penceresi koyu ve açık temada, toplu haciz bittikten sonra: Sonuç Tamamlandı ve talep evrakının özeti, EGM, İcra dosyası, TAKBİS ve Banka satırları, bankada atlanan kurumun uyarısı, altta Toplu Haciz seçenekleri">
+</p>
+
 ## Teşekkür
 
 Bu eklentideki banka haciz ekleme akışı, Raci Çetin Yüksekbaş'ın fikir önerisi üzerine oluşturulmuştur, kendisine teşekkür ederim.
