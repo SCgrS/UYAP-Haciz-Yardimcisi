@@ -28,7 +28,47 @@
   const TO_PAGE = 'UBH_TO_PAGE_V2';
   const TO_EXT = 'UBH_TO_EXT_V2';
 
-  const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+  // --- Durdurma ---------------------------------------------------------------
+  //
+  // Popup'taki durdurma düğmesi akışı olduğu yerde keser. Akış, sayfayı yoklayan
+  // beklemelerden (sleep, waitFor) oluşur. Kesme de oralarda yapılır. İstek
+  // gelince bekleyen her uyku hemen uyanır ve StopRequest fırlatır. Hata,
+  // bölümlerin "takıldı, sıradakine geç" yakalayıcılarından geçerken yeniden
+  // fırlatılır: akış sıradaki bölüme geçmeden biter (bkz. run). Tıklamalardan
+  // hemen önceki bekleme de isteğe bakar, istekten sonra sayfaya yeni bir
+  // tıklama gitmez.
+  class StopRequest extends Error {
+    constructor() {
+      super('Durduruldu');
+    }
+  }
+
+  let stopRequested = false;
+  const wakers = new Set();
+
+  function requestStop() {
+    stopRequested = true;
+    for (const wake of [...wakers]) wake();
+  }
+
+  function throwIfStopped() {
+    if (stopRequested) throw new StopRequest();
+  }
+
+  function sleep(ms) {
+    if (stopRequested) return Promise.reject(new StopRequest());
+
+    return new Promise((resolve, reject) => {
+      const wake = () => {
+        clearTimeout(timer);
+        wakers.delete(wake);
+        if (stopRequested) reject(new StopRequest());
+        else resolve();
+      };
+      const timer = setTimeout(wake, ms);
+      wakers.add(wake);
+    });
+  }
   // offsetParent yalnız display:none olan öğeleri eler. DevExtreme sekme
   // panelleri ise seçili olmayan sekmenin içeriğini silmez, visibility:hidden
   // verip ekran dışına iter. Ölçüm (2026-09-21): Talep Gönder'deki No / Kurum
@@ -550,8 +590,45 @@
   const findTab = label =>
     inRoot('[role="tab"]').find(el => textOf(el) === label) || null;
 
-  const findRadio = label =>
-    inRoot('[role="radio"]').find(el => textOf(el) === label) || null;
+  // DevExtreme radyo düğmesinin etiketi. Eski sürümde role="radio" seçeneğin
+  // kendisindeydi ve yazıyı içinde taşıyordu. UYAP'ın 2026-11'de geçtiği
+  // sürümde role="radio" ile aria-checked yalnız yuvarlak işaretin kabında
+  // (.dx-radio-value-container) duruyor. Yazı yanındaki .dx-item-content'te,
+  // işarete aria-labelledby ile bağlı (ölçüm 2026-11-09, EGM'nin Haciz Şerhi
+  // penceresi ve Talep Gönder'deki banka talep türü). İşaretin kendi yazısı
+  // boş olduğu için "Haciz" bulunamıyordu.
+  //
+  // Etiket için birkaç aday okunur: aria-labelledby'nin gösterdiği her öğe tek
+  // tek ve birlikte, seçeneğin bütünü, aria-label ve öğenin kendi yazısı.
+  // Seçenek, adaylardan biri aranan etikete eşitse bulunmuş sayılır. Böylece
+  // iki sürümde de, bağa bir grup başlığı eklense de sonuç aynıdır.
+  function radioLabels(radio) {
+    const labelled = (radio.getAttribute('aria-labelledby') || '')
+      .split(/\s+/)
+      .filter(Boolean)
+      .map(id => textOf(document.getElementById(id)));
+
+    return [
+      ...labelled,
+      labelled.filter(Boolean).join(' '),
+      textOf(radio.closest('.dx-radiobutton')),
+      (radio.getAttribute('aria-label') || '').replace(/\s+/g, ' ').trim(),
+      textOf(radio)
+    ].filter(Boolean);
+  }
+
+  // Yeni sürümde aria-checked işaretin kabındadır, seçeneğin bütünü de
+  // dx-radiobutton-checked sınıfını alır. Eski sürümde ikisi aynı öğedeydi.
+  const radioChecked = radio =>
+    radio.getAttribute('aria-checked') === 'true' ||
+    !!radio.closest('.dx-radiobutton')?.classList.contains('dx-radiobutton-checked');
+
+  const radioIn = (scope, label) =>
+    [...scope.querySelectorAll('[role="radio"]')]
+      .filter(isVisible)
+      .find(el => radioLabels(el).includes(label)) || null;
+
+  const findRadio = label => radioIn(fileRoot(), label);
 
   const findActionButton = label =>
     inRoot('[role="button"]')
@@ -578,9 +655,28 @@
     const started = Date.now();
 
     do {
+      throwIfStopped();
       const value = produce();
       if (value) return value;
       await sleep(intervalMs);
+    } while (Date.now() - started < timeoutMs);
+
+    return null;
+  }
+
+  // Kaydı talebe ekleyen tıklamadan sonra sonucun gelmesi beklenir. Bu bekleme
+  // durdurma isteğiyle kesilmez: Kesilseydi UYAP'ın eklediği kayıt özette
+  // sayılmazdı. İstek, sonuç geldikten sonraki ilk beklemede yerine getirilir.
+  async function waitForSettled(produce, timeoutMs, intervalMs = 120) {
+    const started = Date.now();
+
+    do {
+      // Yerini yeni kopyaya bırakan kopya bekleyemez: Yeni çalıştırma aynı
+      // sayfada başlamıştır, ikisi aynı kutulara dokunmasın (bkz. dosyanın sonu).
+      if (!isCurrent()) throw new StopRequest();
+      const value = produce();
+      if (value) return value;
+      await new Promise(resolve => setTimeout(resolve, intervalMs));
     } while (Date.now() - started < timeoutMs);
 
     return null;
@@ -622,6 +718,9 @@
   // Perde yoksa hiç beklemez; sık çağrıldığı yerlerde (kayıt ekleme) akışı
   // yavaşlatmaz.
   async function waitForLoaderGone() {
+    // Tıklamaların çoğu bu beklemenin hemen ardından gelir. Perde yokken hiç
+    // uyumadığı için durdurma isteğine burada ayrıca bakılır.
+    throwIfStopped();
     if (!loaderShown()) return;
 
     const started = Date.now();
@@ -672,6 +771,9 @@
   // ve kapatılabilir. İki düğmeli gerçek bir onay sorusuna ASLA dokunulmaz;
   // böyle bir durumda otomasyon durur.
   function dismissInfoAlert() {
+    // Yerini yeni kopyaya bırakan kopya, yeni çalıştırmanın kutusunu kapatmasın.
+    if (!isCurrent()) return 'none';
+
     const popup = document.querySelector('.swal2-container .swal2-popup');
     if (!isVisible(popup)) return 'none';
 
@@ -824,9 +926,17 @@
   // BÖLÜM 3 - ADIMLAR
   // =========================================================================
 
+  // Çalıştırmanın kimliği. Arka plan her başlatmada yenisini verir ve
+  // sayfadan gelen mesajı yalnız kimliği tutuyorsa yazar: durdurulmuş bir
+  // akışın geç kalan mesajı yeni çalıştırmanın durumunu ezemez.
+  let runId = '';
+
   const send = message => {
+    // Yerini yeni kopyaya bırakmış kopya artık konuşmaz (bkz. dosyanın sonu).
+    if (!isCurrent()) return;
+
     document.dispatchEvent(
-      new CustomEvent(TO_EXT, { detail: JSON.stringify(message) })
+      new CustomEvent(TO_EXT, { detail: JSON.stringify({ run: runId, ...message }) })
     );
   };
 
@@ -846,6 +956,12 @@
   // ({ name, reason }). Banka bölümü sonradan takılsa da uyarı satırı
   // yazılabilsin diye eşleştirme adımının dışında, akışın belleğinde durur.
   let skippedBanks = [];
+
+  // Sürmekte olan sorgu bölümünde o ana kadar talebe eklenen kayıt sayısı ve
+  // talep evrakı düğmesine basılıp basılmadığı. Akış durdurulunca özet
+  // bunlarla yazılır: yarıda kalan bölümün eklediği kayıtlar da talepte durur.
+  let sectionAdded = 0;
+  let documentRequested = false;
 
   function step(label) {
     stepIndex += 1;
@@ -1168,13 +1284,20 @@
   // --- Banka seçimi ---------------------------------------------------------
 
   function requestBanks() {
+    throwIfStopped();
     const reqId = String(Date.now()) + Math.random().toString(36).slice(2);
 
     return new Promise(resolve => {
-      const timer = setTimeout(() => {
+      const finish = banks => {
+        clearTimeout(timer);
+        wakers.delete(wake);
         document.removeEventListener(TO_PAGE, listener);
-        resolve([]);
-      }, 5000);
+        resolve(banks);
+      };
+
+      // Durdurma isteği yanıtı beklemeden bırakır (bkz. requestStop).
+      const wake = () => finish([]);
+      const timer = setTimeout(() => finish([]), 5000);
 
       function listener(event) {
         let message;
@@ -1185,11 +1308,10 @@
         }
         if (message.t !== 'BANKS' || message.reqId !== reqId) return;
 
-        clearTimeout(timer);
-        document.removeEventListener(TO_PAGE, listener);
-        resolve(message.banks || []);
+        finish(message.banks || []);
       }
 
+      wakers.add(wake);
       document.addEventListener(TO_PAGE, listener);
       send({ t: 'GET_BANKS', reqId });
     });
@@ -1284,6 +1406,7 @@
 
   async function stepSelectBanks() {
     const stored = await requestBanks();
+    throwIfStopped();
     const sources = stored.length > 0 ? stored : capturedBanks;
     if (sources.length === 0) fail('Banka listesi belleğe alınamadı');
 
@@ -1379,13 +1502,14 @@
       const radio = findRadio(label);
       if (!radio) break;
 
-      if (radio.getAttribute('aria-checked') === 'true') return;
+      if (radioChecked(radio)) return;
 
       radio.click();
 
-      if (await waitFor(
-        () => findRadio(label)?.getAttribute('aria-checked') === 'true', 2500
-      )) return;
+      if (await waitFor(() => {
+        const current = findRadio(label);
+        return !!current && radioChecked(current);
+      }, 2500)) return;
     }
 
     fail(errorLabel);
@@ -1433,7 +1557,10 @@
     // gereksiz geciktirdiği için görünür görünmez "Tamam" ile kapatılır.
     // Kutu, evrak düğmesinden ÖNCE yoklanır: ikisi aynı anda belirdiğinde
     // önce evrak düğmesine bakılırsa kutu hiç kapatılmadan geçilirdi.
-    const outcome = await waitFor(() => {
+    //
+    // Talep bu tıklamayla eklenir. Sonucu durdurma isteği gelse de beklenir
+    // ki eklenen bankalar özette sayılsın (bkz. waitForSettled).
+    const outcome = await waitForSettled(() => {
       if (alertVisible()) return 'alert';
       if (findEvrakOlusturButton()) return 'hazir';
       return null;
@@ -1441,10 +1568,10 @@
 
     if (outcome === 'alert') {
       if (dismissInfoAlert() !== 'dismissed') fail('Onay kutusu kapatılamadı');
-      await waitFor(() => !alertVisible(), 4000);
+      await waitForSettled(() => !alertVisible(), 4000);
     }
 
-    if (!await waitFor(findEvrakOlusturButton, 20000)) fail('Talep eklenemedi');
+    if (!await waitForSettled(findEvrakOlusturButton, 20000)) fail('Talep eklenemedi');
   }
 
   async function stepCreateDocument() {
@@ -1455,6 +1582,7 @@
 
     await waitForLoaderGone();
     button.click();
+    documentRequested = true;
 
     // Burada çoğu zaman kutu çıkmaz. Çıkmayacak bir kutuyu beklemek boşuna
     // gecikme olduğu için pencere kısa tutulur; ayrıca programatik tıklama
@@ -1620,13 +1748,27 @@
       .filter(isVisible)
       .find(el => textOf(el.querySelector('.dx-popup-title')) === 'Haciz Şerhi') || null;
 
+  // Pencerede iki seçenek var: "Haciz" ve "Rehinin Paraya Çevrilmesi". Haciz
+  // talebinde daima ilki işaretlenir.
+  const SERH_OPTION = 'Haciz';
+
+  const findSerhRadio = () => {
+    const popup = findSerhPopup();
+    return popup ? radioIn(popup, SERH_OPTION) : null;
+  };
+
   // Kayıt sayısı ve sayfa geçişi banka bölümündeki ortak yardımcılarla
   // yapılır (gridRecordCount, goToNextPage).
 
   // Satırdaki düğmeye basıldıktan sonrasını yürütür: varsa haciz şerhi
   // penceresi, ardından "Talep eklendi." kutusu.
+  //
+  // İcra dosyası ve TAKBİS'te kayıt satırdaki tıklamayla eklenir, EGM'de şerh
+  // penceresindeki düğmeyle. Eklemeyi izleyen beklemeler durdurma isteğiyle
+  // kesilmez (bkz. waitForSettled). Şerh penceresi açıkken gelen istekte ise
+  // henüz bir şey eklenmemiştir: Akış orada durur, pencereyi temizlik kapatır.
   async function completeAdd() {
-    const outcome = await waitFor(() => {
+    const outcome = await waitForSettled(() => {
       if (findSerhPopup()) return 'serh';
       if (alertVisible()) return 'alert';
       return null;
@@ -1635,17 +1777,18 @@
     if (!outcome) fail('Talep eklenemedi');
 
     if (outcome === 'serh') {
-      const radio = [...findSerhPopup().querySelectorAll('[role="radio"]')]
-        .find(el => textOf(el) === 'Haciz');
+      throwIfStopped();
+
+      // Seçenekler pencereyle birlikte çiziliyor (ölçüm 2026-11-09). Geç
+      // çizildikleri bir gün için kısa bir süre beklenir.
+      const radio = await waitFor(findSerhRadio, 5000);
       if (!radio) fail('Haciz şerhi seçeneği bulunamadı');
 
-      if (radio.getAttribute('aria-checked') !== 'true') radio.click();
+      if (!radioChecked(radio)) radio.click();
 
       const checked = await waitFor(() => {
-        const popup = findSerhPopup();
-        const el = popup && [...popup.querySelectorAll('[role="radio"]')]
-          .find(item => textOf(item) === 'Haciz');
-        return el?.getAttribute('aria-checked') === 'true';
+        const el = findSerhRadio();
+        return !!el && radioChecked(el);
       }, 3000);
       if (!checked) fail('Haciz şerhi işaretlenemedi');
 
@@ -1654,16 +1797,19 @@
         .filter(isVisible)[0];
       if (!add) fail('Şerh penceresindeki düğme bulunamadı');
 
+      // Durdurma isteğine ve yükleme perdesine son kez bakılır: Bu tıklamadan
+      // sonra kayıt eklenir.
+      await waitForLoaderGone();
       add.click();
 
-      if (!await waitFor(alertVisible, 25000)) fail('Talep eklenemedi');
+      if (!await waitForSettled(alertVisible, 25000)) fail('Talep eklenemedi');
     }
 
     // "Talep eklendi." kutusu bir süre sonra kendiliğinden de kapanır; erken
     // kapanmışsa kapatacak bir şey kalmaz ve bu bir hata değildir. İki düğmeli
     // gerçek bir soru çıkarsa dokunulmaz ve durulur.
     if (dismissInfoAlert() === 'blocked') fail('Beklenmeyen onay kutusu');
-    await waitFor(() => !alertVisible(), 5000);
+    await waitForSettled(() => !alertVisible(), 5000);
   }
 
   async function stepOpenQuery(flow) {
@@ -1813,6 +1959,7 @@
         await waitForLoaderGone();
         buttons[index].click();
         await completeAdd();
+        sectionAdded += 1;
         await sleep(200);
       }
 
@@ -1914,8 +2061,14 @@
   // düğmelere basılır: ücret onayında İptal, şerh penceresinde kapat, tek
   // düğmeli bilgi kutusunda Tamam, iki düğmeli swal kutusunda varsa İptal.
   // Kapatılamayan bir kutu çıkarsa false döner ve akış orada durur.
-  async function clearOverlays() {
+  //
+  // Kullanıcı akışı durdurduğunda (confirmUnknown false) İptal'i olmayan iki
+  // düğmeli kutuya hiç dokunulmaz: ne sorduğu bilinmiyor, karar kullanıcının.
+  async function clearOverlays({ confirmUnknown = true } = {}) {
     for (let attempt = 0; attempt < 5; attempt++) {
+      // Yerini yeni kopyaya bırakan kopya, yeni çalıştırmanın kutularına dokunmaz.
+      if (!isCurrent()) return false;
+
       const fee = findFeeDialog();
       if (fee) {
         fee.cancel.click();
@@ -1940,7 +2093,12 @@
       if (alertVisible()) {
         const popup = document.querySelector('.swal2-container .swal2-popup');
         const cancel = popup.querySelector('.swal2-cancel');
-        const button = isVisible(cancel) ? cancel : popup.querySelector('.swal2-confirm');
+        const single = [...popup.querySelectorAll('.swal2-actions button')]
+          .filter(isVisible).length === 1;
+
+        let button = null;
+        if (isVisible(cancel)) button = cancel;
+        else if (confirmUnknown || single) button = popup.querySelector('.swal2-confirm');
         if (!isVisible(button)) return false;
 
         button.click();
@@ -1954,9 +2112,32 @@
         continue;
       }
 
+      await closeOpenLists();
       return true;
     }
     return false;
+  }
+
+  // Açık kalan Hesap Seç listesi ve Talep Tipi / Talep Türü seçenek listesi.
+  // Önünü kesmezler ama yeniden başlatılan akış aynı alanın düğmesine
+  // bastığında liste açılmak yerine kapanır ve beklenen liste hiç gelmez.
+  // Kapatılamazlarsa akış bu yüzden durmaz.
+  async function closeOpenLists() {
+    if (findAccountGrid()) {
+      findEditorByPlaceholder('Hesap Seçiniz')?.button.click();
+      await waitFor(() => !findAccountGrid(), 3000);
+    }
+
+    const listOpen = [...document.querySelectorAll('[role="option"]')].some(isVisible);
+    const editor = listOpen
+      ? [...document.querySelectorAll('.dx-dropdowneditor.dx-dropdowneditor-active')]
+        .find(isVisible)
+      : null;
+    const button = editor?.querySelector('.dx-dropdowneditor-button');
+    if (button) {
+      button.click();
+      await waitFor(() => !editor.classList.contains('dx-dropdowneditor-active'), 3000);
+    }
   }
 
   // Sorgu bölümünün toplu akıştaki hâli: kartı aç, sorgula, çıkan kayıtların
@@ -1983,6 +2164,8 @@
   // sonucudur ve durum kutucuğunun altında, başlığın hemen altında yazılır.
   // Döndürdüğü not oraya gider.
   async function runBulkDocument(prepared) {
+    throwIfStopped();
+
     if (prepared === 0) {
       return {
         ok: true,
@@ -2005,10 +2188,18 @@
 
       return { ok: true, note: `${prepared} kayıt için talep evrakı oluşturuldu` };
     } catch (error) {
+      if (stoppedBy(error)) throw asStop(error);
+
       await clearOverlays();
       return { ok: false, note: `Talep evrakı oluşturulamadı: ${stopNote(error)}` };
     }
   }
+
+  // Durdurma isteğinden sonra çıkan hata da (eklemenin sonucu gelmedi, beklenmeyen
+  // kutu) durdurma sayılır: Bölüm "takıldı" diye yazılmaz, kutulara "devam"
+  // anlamında dokunulmaz, sıradaki bölüme geçilmez.
+  const stoppedBy = error => error instanceof StopRequest || stopRequested;
+  const asStop = error => (error instanceof StopRequest ? error : new StopRequest());
 
   async function runBulkFlow(allowPaid, types, bankaEvrak) {
     // Türler popup'tan gelir. Eski bir popup'tan tür listesi hiç gelmezse
@@ -2034,54 +2225,87 @@
     // Bitişte gösterilecek özet için bölüm başına kayıt sayısı.
     const counts = [];
 
-    for (const key of queries) {
-      const flow = QUERY_FLOWS[key];
-      stage(key, flow.label, 'running', 'Sorgulanıyor');
-      paidApproved = false;
+    let evrak;
 
-      try {
-        const result = await runBulkQuery(flow, allowPaid);
-        prepared += result.added;
-        counts.push(`${flow.label} ${result.added}`);
-        stage(key, flow.label, 'done', result.note);
-      } catch (error) {
-        failed += 1;
-        stage(key, flow.label, 'error', stopNote(error));
+    try {
+      for (const key of queries) {
+        const flow = QUERY_FLOWS[key];
+        stage(key, flow.label, 'running', 'Sorgulanıyor');
+        paidApproved = false;
+        sectionAdded = 0;
 
-        // Kapatılamayan bir kutu sıradaki bölümü de kesin olarak engeller;
-        // körlemesine devam etmek yerine burada durulur.
-        if (!await clearOverlays()) fail('Ekrandaki kutu kapatılamadı');
+        try {
+          const result = await runBulkQuery(flow, allowPaid);
+          prepared += result.added;
+          counts.push(`${flow.label} ${result.added}`);
+          stage(key, flow.label, 'done', result.note);
+        } catch (error) {
+          // Durdurulan bölüm "takıldı" sayılmaz ve sıradaki bölüme geçilmez.
+          // Yarıda kalmadan önce eklediği kayıtlar da talepte durur.
+          if (stoppedBy(error)) {
+            if (sectionAdded > 0) {
+              prepared += sectionAdded;
+              counts.push(`${flow.label} ${sectionAdded}`);
+            }
+            stage(key, flow.label, 'stopped', withCost(sectionAdded > 0
+              ? `Durduruldu, ${sectionAdded} kayıt talebe eklenmişti`
+              : 'Durduruldu'));
+            throw asStop(error);
+          }
+
+          failed += 1;
+          stage(key, flow.label, 'error', stopNote(error));
+
+          // Kapatılamayan bir kutu sıradaki bölümü de kesin olarak engeller;
+          // körlemesine devam etmek yerine burada durulur.
+          if (!await clearOverlays()) fail('Ekrandaki kutu kapatılamadı');
+        }
       }
+
+      if (withBanka) {
+        stage('banka', 'Banka', 'running', 'Sorgulanıyor');
+        paidApproved = false;
+        skippedBanks = [];
+
+        try {
+          await stepQueryBanks(allowPaid);
+          await stepOpenTalepForm();
+
+          const selected = await stepSelectBanks();
+
+          await stepSelectAccountTypes();
+          await stepSelectBankaEvrak(bankaEvrak);
+          await stepAddTalep();
+
+          prepared += selected;
+          counts.push(`Banka ${selected}`);
+          stage('banka', 'Banka', 'done', withCost(
+            `${selected} banka için ${bankaEvrak.note} eklendi`
+          ), bankaWarnings());
+        } catch (error) {
+          if (stoppedBy(error)) {
+            stage('banka', 'Banka', 'stopped', withCost('Durduruldu'), bankaWarnings());
+            throw asStop(error);
+          }
+
+          failed += 1;
+          stage('banka', 'Banka', 'error', stopNote(error), bankaWarnings());
+          await clearOverlays();
+        }
+      }
+
+      evrak = await runBulkDocument(prepared);
+    } catch (error) {
+      // Durdurma özetinde o ana kadar talebe eklenenler yazılır (bkz. run).
+      if (stoppedBy(error)) {
+        const stop = asStop(error);
+        stop.prepared = prepared;
+        stop.counts = counts;
+        throw stop;
+      }
+      throw error;
     }
 
-    if (withBanka) {
-      stage('banka', 'Banka', 'running', 'Sorgulanıyor');
-      paidApproved = false;
-      skippedBanks = [];
-
-      try {
-        await stepQueryBanks(allowPaid);
-        await stepOpenTalepForm();
-
-        const selected = await stepSelectBanks();
-
-        await stepSelectAccountTypes();
-        await stepSelectBankaEvrak(bankaEvrak);
-        await stepAddTalep();
-
-        prepared += selected;
-        counts.push(`Banka ${selected}`);
-        stage('banka', 'Banka', 'done', withCost(
-          `${selected} banka için ${bankaEvrak.note} eklendi`
-        ), bankaWarnings());
-      } catch (error) {
-        failed += 1;
-        stage('banka', 'Banka', 'error', stopNote(error), bankaWarnings());
-        await clearOverlays();
-      }
-    }
-
-    const evrak = await runBulkDocument(prepared);
     if (!evrak.ok) failed += 1;
 
     // Başlığın altındaki satır: evrakın ne olduğu ve hangi bölümden kaçar
@@ -2098,14 +2322,56 @@
     return { label: 'Tamamlandı', detail };
   }
 
+  // Durdurulan akışın ardından: Akışın açtığı pencere ve kutular kapatılır ki
+  // baştan başlatınca yolu tıkamasın, sonra popup'a ne kadarının yapıldığı
+  // yazılır. Talebe eklenmiş kayıtlar geri alınmaz, sayısı söylenir.
+  async function finishStopped(error) {
+    // Yeni bir kopya yüklendiği için durdurulduysa (bkz. dosyanın sonu) sayfaya
+    // artık o kopya dokunur. Bu kopya hiçbir şeye tıklamadan çekilir.
+    if (!isCurrent()) return;
+
+    // Temizlikteki beklemeler çalışabilsin diye istek düşürülür. Bu sırada
+    // yeniden durdurulursa temizlik yarıda bırakılır, sonuç yine yazılır.
+    stopRequested = false;
+    try {
+      await clearOverlays({ confirmUnknown: false });
+    } catch (_) {
+      // Kapatılamayan kutu kullanıcıya kalır.
+    }
+
+    const prepared = error.prepared || 0;
+    const counts = error.counts || [];
+
+    let detail = prepared > 0
+      ? `Durdurulana kadar ${prepared} kayıt talebe eklendi (${counts.join(', ')})`
+      : 'Talebe kayıt eklenmedi';
+    if (documentRequested) detail += '. Talep evrakı oluşturma düğmesine basılmıştı';
+
+    send({ t: 'STOPPED', detail });
+  }
+
+  // Başlatma sürerken gelen durdurma isteğinin çalıştırma kimliği. START bu
+  // kimlikle sonradan gelirse akış hiç başlamaz.
+  let cancelledRun = '';
+
   async function run(options) {
     if (running) return;
-    running = true;
 
+    const id = typeof options.run === 'string' ? options.run : '';
+    if (id && id === cancelledRun) {
+      send({ t: 'STOPPED', detail: 'Talebe kayıt eklenmedi', run: id });
+      return;
+    }
+
+    running = true;
+    runId = id;
+    stopRequested = false;
     stepIndex = 0;
     capturedBanks = [];
     skippedBanks = [];
     paidApproved = false;
+    sectionAdded = 0;
+    documentRequested = false;
 
     try {
       // Tanınmayan ya da hiç gelmeyen değer öntanımlı 89/1 sayılır.
@@ -2116,13 +2382,38 @@
 
       send({ t: 'DONE', label: result.label, detail: result.detail });
     } catch (error) {
-      const stop = error instanceof StepError ? error : null;
-      send({ t: 'FAIL', label: stop?.headline || '', detail: stop?.detail || '' });
+      if (error instanceof StopRequest) {
+        await finishStopped(error);
+      } else {
+        const stop = error instanceof StepError ? error : null;
+        send({ t: 'FAIL', label: stop?.headline || '', detail: stop?.detail || '' });
+      }
     } finally {
       capturedBanks = [];
       skippedBanks = [];
+      stopRequested = false;
       running = false;
     }
+  }
+
+  // Popup'taki durdurma düğmesi. Akış sürüyorsa kesilir ve özeti kendisi
+  // yazar. Sürmüyorsa (az önce bitti ya da sayfa yenilendi) popup yine de
+  // beklemede kalmasın diye hemen "durdu" denir.
+  function stopRun(message) {
+    if (running) {
+      requestStop();
+      // İstek alındı: Akış, UYAP'ın o an eklemekte olduğu kaydın sonucunu
+      // bekleyip öyle durur. Bu birkaç saniye sürebilir, arka plan popup'ı bu
+      // sürede "Durduruldu"ya çevirmez.
+      send({ t: 'STOPPING' });
+      return;
+    }
+
+    // Başlatma sürerken gelen istek: Akış hiç başlamayacak.
+    const id = typeof message.run === 'string' ? message.run : '';
+    const pending = !!id && id !== runId;
+    if (pending) cancelledRun = id;
+    send({ t: 'STOPPED', detail: pending ? 'Talebe kayıt eklenmedi' : '', run: id || runId });
   }
 
   // --- Başka dosyaya geçildiğinde özeti temizle -----------------------------
@@ -2180,6 +2471,7 @@
       return;
     }
     if (message.t === 'START') run(message);
+    else if (message.t === 'STOP') stopRun(message);
   }
 
   document.addEventListener(TO_PAGE, onExtensionMessage);
@@ -2207,5 +2499,9 @@
     document.removeEventListener(TO_PAGE, onExtensionMessage);
     watchedFileWindow = null;
     pendingChange = null;
+
+    // Yarıda kalan akış da durur: Yeni kopya başlarken iki akış aynı sayfaya
+    // tıklamasın. Bu kopya artık konuşmadığı için özet yazmaz (bkz. send).
+    if (running) requestStop();
   };
 })();

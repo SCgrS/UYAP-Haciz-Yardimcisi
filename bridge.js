@@ -25,6 +25,8 @@
 
   const send = message => chrome.runtime.sendMessage(message).catch(() => {});
 
+  // run: Arka planın her çalıştırmaya verdiği kimlik. Sayfa onu her mesajına
+  // geri ekler. Arka plan yalnız kimliği tutan mesajı yazar.
   const onExtensionMessage = message => {
     if (!isCurrent()) return;
 
@@ -33,8 +35,11 @@
         t: 'START',
         types: message.types,
         paid: message.paid,
-        bankaTalep: message.bankaTalep
+        bankaTalep: message.bankaTalep,
+        run: message.runId
       });
+    } else if (message?.type === 'UBH_STOP') {
+      toPage({ t: 'STOP', run: message.runId });
     }
   };
 
@@ -54,6 +59,7 @@
       case 'STEP':
         send({
           type: 'UBH_STEP',
+          run: message.run,
           label: message.label,
           index: message.index,
           total: message.total
@@ -61,11 +67,19 @@
         break;
 
       case 'DONE':
-        send({ type: 'UBH_DONE', label: message.label, detail: message.detail });
+        send({ type: 'UBH_DONE', run: message.run, label: message.label, detail: message.detail });
         break;
 
       case 'FAIL':
-        send({ type: 'UBH_FAIL', label: message.label, detail: message.detail });
+        send({ type: 'UBH_FAIL', run: message.run, label: message.label, detail: message.detail });
+        break;
+
+      case 'STOPPING':
+        send({ type: 'UBH_STOPPING', run: message.run });
+        break;
+
+      case 'STOPPED':
+        send({ type: 'UBH_STOPPED', run: message.run, detail: message.detail });
         break;
 
       case 'RESET':
@@ -75,6 +89,7 @@
       case 'STAGE':
         send({
           type: 'UBH_STAGE',
+          run: message.run,
           key: message.key,
           name: message.name,
           state: message.state,

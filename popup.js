@@ -8,7 +8,7 @@
 // background.js ile aynı numara. Tutmuyorsa Chrome hâlâ eklentinin eski
 // sürümünü çalıştırıyordur ve popup'ta yapılan seçimler sayfaya ulaşmaz;
 // böyle bir durumda iş hiç başlatılmaz (bkz. background.js'teki açıklama).
-const PROTOCOL = 3;
+const PROTOCOL = 4;
 
 const PROGRESS_KEY = 'ubh_progress';
 const PREFS_KEY = 'ubh_prefs';
@@ -23,14 +23,20 @@ const BULK_TYPES = ['egm', 'icra', 'takbis', 'banka'];
 // olabildiğinden geniş tutulur.
 const STALE_MS = 10 * 60 * 1000;
 
+// Durdurma isteğinden sonra arka plan sayfanın yanıtını bekler (sayfa isteği
+// aldıysa en çok 90 saniye), sonra popup'ı kendisi bırakır. Arka plan bu
+// arada uykuya dalarsa popup aynı işi biraz pay bırakarak kendisi yapar.
+const STOP_STALE_MS = 2 * 60 * 1000;
+
 // Çalışma sürerken sayfaya dokunmak sıralamayı bozabiliyor; uyarı tam da o
 // sırada, durum çubuğunun altında durur.
-const RUNNING_HINT = 'İşlem sürerken sayfada bir yere tıklamayın; ' +
+const RUNNING_HINT = 'İşlem sürerken sayfada bir yere tıklamayın, ' +
                      'sıralamayı ve işlemleri sekteye uğratabilirsiniz.';
 
 const el = {
   theme: document.getElementById('theme'),
   start: document.getElementById('start'),
+  stop: document.getElementById('stop'),
   reset: document.getElementById('reset'),
   howto: document.querySelector('.howto'),
   status: document.getElementById('status'),
@@ -49,10 +55,14 @@ const BANKA_TALEP = ['ihbarname', 'muzekkere'];
 // Dört haciz türü de öntanımlı olarak tiklidir: olağan kullanım hepsini
 // hazırlamaktır, tik kaldırmak istisnadır. Ücretli sorgu onayı ise para
 // harcattığı için öntanımlı olarak kapalıdır. Banka talebi öntanımlı olarak
-// 89/1 haciz ihbarnamesidir.
+// 89/1 haciz ihbarnamesidir. Pencere koyu temayla açılır. Açık tema yalnız
+// kullanıcı tema düğmesiyle seçtiyse (themeChosen) korunur: Eski sürümler
+// tercihleri kaydederken o zamanki öntanımlı "light"ı da yazıyordu, o kayıt
+// bir seçim sayılmaz.
 function defaultPrefs() {
   return {
-    theme: 'light',
+    theme: 'dark',
+    themeChosen: false,
     toplu: {
       paid: false, egm: true, icra: true, takbis: true, banka: true,
       bankaTalep: 'ihbarname'
@@ -85,7 +95,10 @@ async function loadPrefs() {
   // Yalnız tanınan alanlar alınır: eski sürümlerden kalan (ödeme türü, bölüm
   // tikleri) anahtarlar taşınmaz.
   if (saved) {
-    if (saved.theme === 'dark' || saved.theme === 'light') prefs.theme = saved.theme;
+    if (saved.themeChosen === true && (saved.theme === 'dark' || saved.theme === 'light')) {
+      prefs.theme = saved.theme;
+      prefs.themeChosen = true;
+    }
     prefs.toplu = { ...defaultPrefs().toplu, ...(saved.toplu || {}) };
     if (!BANKA_TALEP.includes(prefs.toplu.bankaTalep)) {
       prefs.toplu.bankaTalep = defaultPrefs().toplu.bankaTalep;
@@ -177,28 +190,43 @@ function renderStages(stages) {
 function render(progress) {
   let state = progress?.state || 'idle';
   let label = progress?.label || 'Hazır';
+  const stopping = state === 'running' && progress?.stopping === true;
+  const idleFor = Date.now() - (progress?.at || 0);
 
-  if (state === 'running' && Date.now() - (progress.at || 0) > STALE_MS) {
+  if (stopping && idleFor > STOP_STALE_MS) {
+    state = 'stopped';
+    label = 'Durduruldu';
+  } else if (state === 'running' && idleFor > STALE_MS) {
     state = 'error';
     label = 'Bir şeyler ters gitti';
   }
 
   const total = progress?.total || 0;
   const index = progress?.index || 0;
+  const finished = state === 'done' || state === 'error' || state === 'stopped';
 
   el.status.dataset.state = state;
   el.statusText.textContent = label;
 
   el.start.disabled = state === 'running';
 
-  // Çalıştırma bitmiştir: ya sonuç yazılıdır ya da nerede takıldığı. İki
-  // durumda da ekranda duran özeti kaldırıp “Hazır”a dönmenin bir yolu olmalı.
-  el.reset.hidden = !(state === 'done' || state === 'error');
+  // Durdurma düğmesi yalnız çalışırken görünür. Arka plan çalıştırmayı
+  // kaydedene (kimlik verene) kadar basılamaz: Başlatma ile durdurma birbirini
+  // ezmesin. Basıldıktan sonra da sayfa akışı kesip kutuları kapatana kadar
+  // ikinci kez basılamaz.
+  el.stop.hidden = state !== 'running';
+  el.stop.disabled = stopping || !progress?.runId;
 
-  // Bittiğinde SONUÇ özeti, takıldığında nerede durulduğu, çalışırken de
-  // sayfaya dokunmama uyarısı aynı satırda görünür.
+  // Çalıştırma bitmiştir: ya sonuç yazılıdır, ya nerede takıldığı ya da
+  // durdurulduğu. Her durumda ekranda duran özeti kaldırıp “Hazır”a dönmenin
+  // bir yolu olmalı.
+  el.reset.hidden = !finished;
+
+  // Bittiğinde SONUÇ özeti, takıldığında nerede durulduğu, durdurulduğunda
+  // o ana kadar talebe eklenenler, çalışırken de sayfaya dokunmama uyarısı
+  // aynı satırda görünür.
   let detail = '';
-  if (state === 'done' || state === 'error') detail = progress?.detail || '';
+  if (finished) detail = progress?.detail || '';
   else if (state === 'running') detail = RUNNING_HINT;
 
   el.statusDetail.textContent = detail;
@@ -206,10 +234,13 @@ function render(progress) {
 
   renderStages(Array.isArray(progress?.stages) ? progress.stages : []);
 
+  // Durdurulan çalıştırmada çubuk kaldığı yerde durur.
   let percent = 0;
-  if (state === 'running' && total > 0) percent = Math.min(100, (index / total) * 100);
-  else if (state === 'done') percent = 100;
-  else if (state === 'error') percent = 100;
+  if ((state === 'running' || state === 'stopped') && total > 0) {
+    percent = Math.min(100, (index / total) * 100);
+  } else if (state === 'done' || state === 'error') {
+    percent = 100;
+  }
 
   el.statusFill.style.width = `${percent}%`;
 }
@@ -230,6 +261,7 @@ setInterval(refresh, 5000);
 
 el.theme.addEventListener('click', () => {
   prefs.theme = prefs.theme === 'dark' ? 'light' : 'dark';
+  prefs.themeChosen = true;
   applyPrefs();
   savePrefs();
 });
@@ -309,6 +341,46 @@ el.start.addEventListener('click', async () => {
   } catch (_) {
     render({ state: 'error', label: 'Bir şeyler ters gitti' });
   }
+});
+
+// Süren işi keser. Kesme işini sayfadaki betik yapar: O anki adımı bırakır,
+// eklentinin açtığı şerh, ücret ya da bilgi kutusunu kapatır ve o ana kadar
+// talebe eklenen kayıtların sayısını yazar. Popup yalnız isteği iletir. İstek,
+// kullanıcı başka sekmeye geçmiş olsa da çalıştırmanın sekmesine gider
+// (bkz. background.js). Etkin UYAP sekmesi yalnız yedek olarak verilir.
+el.stop.addEventListener('click', async () => {
+  el.stop.disabled = true;
+  el.statusText.textContent = 'Durduruluyor';
+
+  let tabId;
+  try {
+    tabId = (await activeUyapTab())?.id;
+  } catch (_) {
+    tabId = undefined;
+  }
+
+  try {
+    await chrome.runtime.sendMessage({ type: 'UBH_STOP', tabId });
+  } catch (_) {
+    // Arka plan yanıt vermiyorsa hiç değilse ekran bırakılır. Bölüm satırları
+    // yerinde kalır.
+    const stored = (await chrome.storage.session.get(PROGRESS_KEY))[PROGRESS_KEY] || {};
+    const stages = (Array.isArray(stored.stages) ? stored.stages : []).map(item =>
+      item.state === 'running' ? { ...item, state: 'stopped', note: 'Durduruldu' } : item
+    );
+    await chrome.storage.session.set({
+      [PROGRESS_KEY]: {
+        ...stored,
+        state: 'stopped',
+        label: 'Durduruldu',
+        stopping: false,
+        stages,
+        at: Date.now()
+      }
+    });
+  }
+
+  refresh();
 });
 
 // Biten bir çalıştırmanın özetini kaldırıp ekranı “Hazır”a döndürür: popup’ı

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="tr" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <title>UYAP Haciz Yardımcısı</title>
@@ -28,6 +28,13 @@
       <span id="status-text" class="status__text">Hazır</span>
       <span id="status-detail" class="status__detail" hidden></span>
     </span>
+    <!-- Durdurma düğmesi: yalnız çalışırken görünür. Akışı o anda keser,
+         ardından düğmeyle baştan başlanabilir. -->
+    <button id="stop" class="stop" type="button" title="Durdur" aria-label="Durdur" hidden>
+      <svg viewBox="0 0 24 24" width="9" height="9" aria-hidden="true">
+        <rect x="3" y="3" width="18" height="18" rx="3.5" fill="currentColor"/>
+      </svg>
+    </button>
     <div class="status__bar"><i id="status-fill"></i></div>
   </section>
 

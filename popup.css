@@ -201,6 +201,48 @@ html[data-theme="dark"] .ico-moon { display: inline; }
 .status[data-state="error"] .status__text { color: var(--warn); font-weight: 600; }
 .status[data-state="error"] .status__bar i { background: var(--warn); }
 
+/* Durdurulan çalıştırma bir hata değildir: kutu sakin kalır, yazı kalınlaşır,
+   çubuk kaldığı yerde soluk renkle durur. */
+.status[data-state="stopped"] .status__dot { background: var(--muted); }
+.status[data-state="stopped"] .status__text { color: var(--text); font-weight: 600; }
+.status[data-state="stopped"] .status__bar i { background: var(--muted); }
+
+/* Durdurma düğmesi: durum kutusunun sağ üstünde, ilk satırla aynı hizada
+   küçük yuvarlak bir düğme. Sakin durur, üzerine gelince uyarı rengini alır. */
+.stop {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin: -1px -4px 0 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--muted);
+  cursor: pointer;
+  transition: color .15s, border-color .15s, background .15s, opacity .15s;
+}
+
+.stop:hover:not(:disabled) {
+  color: var(--warn);
+  border-color: color-mix(in srgb, var(--warn) 60%, var(--border));
+  background: color-mix(in srgb, var(--warn) 10%, var(--surface));
+}
+
+.stop:active:not(:disabled) { transform: translateY(1px); }
+
+.stop:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.stop:disabled {
+  opacity: .6;
+  cursor: default;
+}
+
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: .25; }
@@ -295,6 +337,9 @@ html[data-theme="dark"] .ico-moon { display: inline; }
 
 .stage[data-state="error"] .stage__dot { background: var(--warn); }
 .stage[data-state="error"] .stage__name { color: var(--warn); font-weight: 600; }
+
+.stage[data-state="stopped"] .stage__dot { background: var(--muted); }
+.stage[data-state="stopped"] .stage__name { color: var(--text); font-weight: 600; }
 
 /* --- Yeni sorgu düğmesi -------------------------------------------------- */
 /* Biten bir çalıştırmanın özetini kaldırıp ekranı “Hazır”a döndürür. Yalnız

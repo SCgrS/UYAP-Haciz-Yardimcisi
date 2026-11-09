@@ -64,8 +64,8 @@ Eklenti üyelik, e-posta ya da ücret istemez.
 3. Araç çubuğundaki eklenti simgesine tıklayın ve istediğiniz haciz türlerini seçin.
 4. **Toplu Haczi Hazırla**'ya basın.
 
-İşlem sürerken sayfada bir yere tıklamayın, sıralamayı sekteye uğratabilirsiniz. Banka bölümü bittiğinde hazırlanan talebi sorgu sonucuyla
-karşılaştırın.
+İşlem sürerken sayfada bir yere tıklamayın, sıralamayı sekteye uğratabilirsiniz. Yarıda kesmek için durum kutusundaki **Durdur** düğmesine
+basın. Banka bölümü bittiğinde hazırlanan talebi sorgu sonucuyla karşılaştırın.
 
 En sonda eklenti **Talep Evrakı Oluştur** düğmesine basar. Evrak indirilir ve akış orada durur.
 
@@ -103,8 +103,11 @@ Ayarlar, eklenti simgesine basınca açılan penceredeki **Toplu Haciz** bölüm
   **kapalıdır**. Kapalıyken kutu **İptal** ile kapatılır ve o bölüm geçilir.
 - **Banka talep türü:** Banka haczi talebi **Haciz müzekkeresi** ya da **89/1 ihbarnamesi** olarak hazırlanır. Yalnız biri seçilebilir,
   varsayılan 89/1'dir.
-- **Yeni Sorgu Yap:** Çalıştırma bitince görünür. Ekranda duran sonucu temizleyip durumu **Hazır**'a döndürür.
-- **Koyu / açık mod:** Pencerenin üstündeki düğmeyle koyu ve açık görünüm arasında geçilir.
+- **Durdur:** İşlem sürerken durum kutusunun sağında küçük bir düğme (■) olarak görünür. Akışı o anda keser, eklentinin açtığı şerh, ücret
+  ya da bilgi penceresini kapatır. O ana kadar talebe eklenen kayıtlar UYAP'ta kalır, sayısı durum kutusunda yazar. Ardından **Toplu
+  Haczi Hazırla** ile baştan başlanabilir.
+- **Yeni Sorgu Yap:** Çalıştırma bitince ya da durdurulunca görünür. Ekranda duran sonucu temizleyip durumu **Hazır**'a döndürür.
+- **Koyu / açık mod:** Pencerenin üstündeki düğmeyle koyu ve açık görünüm arasında geçilir. Pencere ilk açılışta koyudur.
 
 ### Ne yapmaz
 
