@@ -87,7 +87,7 @@
             <span class="check__label">TAKBİS</span>
           </label>
           <label class="check">
-            <input type="checkbox" data-opt="toplu.banka">
+            <input type="checkbox" data-opt="toplu.banka" aria-controls="evrak">
             <span class="check__box">
               <svg viewBox="0 0 24 24" width="10" height="10" aria-hidden="true">
                 <path d="m5 12 5 5L19 7" fill="none" stroke="currentColor" stroke-width="3"
@@ -98,21 +98,12 @@
           </label>
         </div>
 
-        <label class="check check--sep">
-          <input type="checkbox" data-opt="toplu.paid">
-          <span class="check__box">
-            <svg viewBox="0 0 24 24" width="10" height="10" aria-hidden="true">
-              <path d="m5 12 5 5L19 7" fill="none" stroke="currentColor" stroke-width="3"
-                    stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </span>
-          <span class="check__label">Ücretli sorguyu onayla</span>
-        </label>
-
-        <!-- Banka talebinin evrak türü de ayrı bir karardır: çizgiyle ayrılır.
-             İkisi aynı anda seçilemez; bu yüzden girdiler radyo düğmesidir,
-             yalnız görünüşleri tik kutusudur. Öntanımlısı 89/1. -->
-        <div class="evrak check--sep" role="radiogroup" aria-labelledby="evrak-title">
+        <!-- Banka talebinin evrak türü Banka'nın bir parçasıdır: Yalnız Banka
+             seçiliyken görünür ve hemen altında, üstündeki çentikle Banka'yı
+             gösteren bir alt kutuda durur. İkisi aynı anda seçilemez. Bu yüzden
+             girdiler radyo düğmesidir, yalnız görünüşleri tik kutusudur.
+             Öntanımlısı 89/1. -->
+        <div id="evrak" class="evrak" role="radiogroup" aria-labelledby="evrak-title">
           <div id="evrak-title" class="evrak__title">Banka talep türü</div>
           <div class="picks">
             <label class="check">
@@ -137,6 +128,17 @@
             </label>
           </div>
         </div>
+
+        <label class="check check--sep">
+          <input type="checkbox" data-opt="toplu.paid">
+          <span class="check__box">
+            <svg viewBox="0 0 24 24" width="10" height="10" aria-hidden="true">
+              <path d="m5 12 5 5L19 7" fill="none" stroke="currentColor" stroke-width="3"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="check__label">Ücretli sorguyu onayla</span>
+        </label>
       </div>
 
       <!-- Düğme bölümün en altındadır: önce ne yapılacağı seçilir, sonra basılır. -->

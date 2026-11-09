@@ -38,6 +38,7 @@ const el = {
   start: document.getElementById('start'),
   stop: document.getElementById('stop'),
   reset: document.getElementById('reset'),
+  evrak: document.getElementById('evrak'),
   howto: document.querySelector('.howto'),
   status: document.getElementById('status'),
   statusText: document.getElementById('status-text'),
@@ -82,6 +83,14 @@ function applyPrefs() {
     const value = prefs[group]?.[key];
     input.checked = input.type === 'radio' ? value === input.value : !!value;
   }
+
+  syncBankaEvrak();
+}
+
+// Banka talep türü Banka'nın bir parçasıdır: Yalnız Banka seçiliyken
+// görünür. Gizlenince seçim kaybolmaz, Banka yeniden seçilince aynen döner.
+function syncBankaEvrak() {
+  el.evrak.hidden = prefs.toplu.banka === false;
 }
 
 function savePrefs() {
@@ -273,6 +282,7 @@ for (const input of document.querySelectorAll('[data-opt]')) {
     const [group, key] = input.dataset.opt.split('.');
     prefs[group][key] = input.type === 'radio' ? input.value : input.checked;
     savePrefs();
+    syncBankaEvrak();
   });
 }
 

@@ -423,7 +423,51 @@ html[data-theme="dark"] .ico-moon { display: inline; }
   border-top: 1px solid var(--border);
 }
 
-/* Banka talebinin evrak türü: iki seçenekten biri daima seçilidir. */
+/* Banka talebinin evrak türü: iki seçenekten biri daima seçilidir. Banka'ya
+   bağlı bir alt kutudur. Yalnız Banka seçiliyken görünür (bkz. popup.js),
+   tür tiklerinin hemen altında durur, üstündeki çentik Banka'yı gösterir.
+   Kutunun iç boşluğu iki yanda eşit olduğu için içindeki ızgaranın sağ
+   sütunu dıştaki ızgaranınkiyle aynı yerden başlar: "89/1 ihbarnamesi"nin
+   tiki "Banka"nın tikinin tam altına düşer. */
+.evrak {
+  position: relative;
+  margin-top: 10px;
+  padding: 6px 9px 7px;
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--border));
+  border-radius: 9px;
+  background: var(--surface);
+  animation: evrak-in .16s ease-out;
+}
+
+/* Çentik: 45° döndürülmüş küçük kare. Yalnız üst ve sol kenarı çizilir, alt
+   yarısı kutunun içinde kalır ve kutunun üst kenarlığını o noktada örter.
+   Konum: Dıştaki ızgaranın sağ sütunu %50 + 4 px'te başlar, tikin ortası
+   7,5 px içeride. Hesaplanan değer (%50 + 7,5 px) çentiği her ölçekte 1 px
+   sağa kaydırıyordu (ölçüm 2026-11-09, 1x, 1,25x, 1,5x, 2x ve 3x). 6,5 px ile
+   uç tikin tam ortasına düşer. */
+.evrak::before {
+  content: "";
+  position: absolute;
+  top: -5px;
+  left: calc(50% + 6.5px);
+  width: 8px;
+  height: 8px;
+  background: inherit;
+  border-top: 1px solid color-mix(in srgb, var(--accent) 32%, var(--border));
+  border-left: 1px solid color-mix(in srgb, var(--accent) 32%, var(--border));
+  border-top-left-radius: 2px;
+  transform: rotate(45deg);
+}
+
+@keyframes evrak-in {
+  from { opacity: 0; transform: translateY(-3px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .evrak { animation: none; }
+}
+
 /* Başlık, bölüm başlığıyla (.grp__title) aynı puntodadır; ikisi de kendi
    seçenek kümesinin üstünde duran başlıktır. Büyük harf ve harf aralığı
    yalnız bölüm başlığındadır: bu satır bir cümledir. */

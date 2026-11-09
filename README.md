@@ -99,10 +99,10 @@ Ayarlar, eklenti simgesine basınca açılan penceredeki **Toplu Haciz** bölüm
 
 - **EGM / İcra dosyası / TAKBİS / Banka:** Hangi türlerin hazırlanacağı. Dördü de varsayılan olarak açıktır. Tiki kaldırılan tür hiç
   sorgulanmaz.
+- **Banka talep türü:** Banka seçiliyken hemen altındaki kutuda görünür. Banka haczi talebi **Haciz müzekkeresi** ya da **89/1
+  ihbarnamesi** olarak hazırlanır. Yalnız biri seçilebilir, varsayılan 89/1'dir.
 - **Ücretli sorguyu onayla:** Ücretsiz hak bittiğinde UYAP'ın açtığı "... ücret alınacaktır" kutusunu onaylar. Varsayılan olarak
   **kapalıdır**. Kapalıyken kutu **İptal** ile kapatılır ve o bölüm geçilir.
-- **Banka talep türü:** Banka haczi talebi **Haciz müzekkeresi** ya da **89/1 ihbarnamesi** olarak hazırlanır. Yalnız biri seçilebilir,
-  varsayılan 89/1'dir.
 - **Durdur:** İşlem sürerken durum kutusunun sağında küçük bir düğme (■) olarak görünür. Akışı o anda keser, eklentinin açtığı şerh, ücret
   ya da bilgi penceresini kapatır. O ana kadar talebe eklenen kayıtlar UYAP'ta kalır, sayısı durum kutusunda yazar. Ardından **Toplu
   Haczi Hazırla** ile baştan başlanabilir.
