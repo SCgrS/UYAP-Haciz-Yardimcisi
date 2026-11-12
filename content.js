@@ -215,7 +215,15 @@
       }
     }
 
-    return { full, core: words.join('') };
+    // starts: core içinde her sözcüğün başladığı yer (bkz. matchBankTiered).
+    const starts = [];
+    let at = 0;
+    for (const word of words) {
+      starts.push(at);
+      at += word.length;
+    }
+
+    return { full, core: words.join(''), starts };
   }
 
   // targets: Banka Seç listesinden okunmuş [{ name, full, core }].
@@ -225,25 +233,69 @@
   //   2. kesilmiş ad (unvanın başı),
   //   3. baştan ya da sondan bir parçası eksik ya da fazla ad
   //      ("ZİRAAT BANKASI", "HALKBANK", "... KIZILAY ŞUBESİ").
+  //
+  // 3. katmanda parça öbür adın bir SÖZCÜĞÜNÜN başından başlamalıdır. Adlar
+  // boşluksuz karşılaştırıldığından eskiden sözcük ortasına denk gelen parça
+  // da sayılıyordu: "T. FİNANS KATILIM BANKASI" (TFİNANS...) "HAYAT FİNANS
+  // KATILIM BANKASI"na, "T. EMLAK BANKASI" (TEML-AKBANK-ASI) Akbank'a
+  // uyuyordu. "HALKBANK" "TÜRKİYE HALK BANKASI"nda HALK sözcüğünün başından
+  // başladığı için uymaya devam eder.
+  //
+  // UYAP 2026-11'den beri sorgu sonucunda "Türkiye"yi "T." diye kısaltıyor:
+  // "T. VAKIFLAR BANKASI T.A.O.", "T. GARANTİ BANKASI A.Ş.", "T. İŞ BANKASI
+  // A.Ş.", "T. HALK BANKASI A.Ş." (ölçüm 2026-11-12, Banka Seç listesinde
+  // unvanlar "TÜRKİYE ..." diye tam yazılı). "T." "Türk" de olabilir ("Türk
+  // Ekonomi Bankası"). Böyle bir ad üç biçimde denenir: olduğu gibi ("T.O.M.
+  // KATILIM BANKASI" böyle uyar), "TÜRKİYE ..." ve "TÜRK ...". En sıkı
+  // katmanda uyan biçimlerin unvanları döner. İki ayrı unvan kalırsa çağıran
+  // taraf adı belirsiz sayar. "T.C." (Türkiye Cumhuriyeti) bankForms'ta açılır.
   function matchBank(sourceName, targets) {
+    const forms = [sourceName];
+    const name = normalize(sourceName);
+    if (/^T (?!C )/.test(name)) forms.push(`TÜRKİYE ${name.slice(2)}`, `TÜRK ${name.slice(2)}`);
+
+    let best = 0;
+    const found = new Set();
+
+    for (const form of forms) {
+      const { tier, hits } = matchBankTiered(form, targets);
+      if (tier === 0) continue;
+
+      if (best === 0 || tier < best) {
+        best = tier;
+        found.clear();
+      }
+      if (tier === best) for (const hit of hits) found.add(hit);
+    }
+    return [...found];
+  }
+
+  const occursAtWordStart = (text, part, starts) =>
+    starts.some(index => text.startsWith(part, index));
+
+  // { tier, hits }: hits ilk sonuç veren katmanın unvanları, tier o katmanın
+  // sırası (1-3). Hiçbir katman uymazsa tier 0.
+  function matchBankTiered(sourceName, targets) {
     const source = bankForms(sourceName);
-    const key = BRAND_ALIASES.get(source.core) || source.core;
-    if (key.length < 3) return [];
+    const alias = BRAND_ALIASES.get(source.core);
+    const key = alias || source.core;
+    const keyStarts = alias ? [0] : source.starts;
+    if (key.length < 3) return { tier: 0, hits: [] };
 
     const tiers = [
       target => target.core === key,
       target => target.core.startsWith(key) ||
                 target.full.startsWith(key) ||
                 target.full.startsWith(source.full),
-      target => (key.length >= 6 && target.core.includes(key)) ||
-                (target.core.length >= 6 && key.includes(target.core))
+      target => (key.length >= 6 && occursAtWordStart(target.core, key, target.starts)) ||
+                (target.core.length >= 6 && occursAtWordStart(key, target.core, keyStarts))
     ];
 
-    for (const test of tiers) {
-      const hits = targets.filter(test);
-      if (hits.length > 0) return hits;
+    for (let i = 0; i < tiers.length; i++) {
+      const hits = targets.filter(tiers[i]);
+      if (hits.length > 0) return { tier: i + 1, hits };
     }
-    return [];
+    return { tier: 0, hits: [] };
   }
 
   // Filtre kutusu metni olduğu gibi arar. Unvanın içinde noktalama varsa
@@ -1279,6 +1331,13 @@
     if (!await waitFor(() => findEditorByPlaceholder('Banka Seçiniz'), 15000)) {
       fail('Banka Seç alanı gelmedi');
     }
+
+    // Ölçüm (2026-11-12): Sorgular'dan buraya geçilip tip ve tür yeniden
+    // seçilince UYAP formu kısa süre sonra bir kez daha çiziyor, o sırada
+    // açılan Banka Seç listesi yaklaşık 660 ms sonra kapanıyordu. 1,5 sn sonra
+    // açılan liste kapanmadı. Bekleme yalnız yeniden denemeyi önler, okumanın
+    // doğruluğunu readBankTargets'ın denetimleri sağlar.
+    await sleep(1500);
   }
 
   // --- Banka seçimi ---------------------------------------------------------
@@ -1339,37 +1398,139 @@
   }
 
   // Banka Seç listesi de sayfalıdır (ölçüm 2026-09-21: sayfa başına 25, üç
-  // sayfa, 58 banka). Eşleştirme listenin tamamına bakmalıdır; ilk sayfada
-  // olmayan bir banka "listede yok" sanılırdı. Adlar bütün sayfalardan okunur,
-  // ardından ilk sayfaya dönülür.
-  async function readBankTargets() {
-    if (!await ensureBankGridOpen()) fail('Banka Seç listesi açılmadı');
+  // sayfa, 58 banka. 2026-11-12'de de aynı). Eşleştirme listenin tamamına
+  // bakmalıdır: İlk sayfada olmayan bir banka "listede yok" sanılırdı. Adlar
+  // bütün sayfalardan okunur, ardından ilk sayfaya dönülür.
+  //
+  // Liste okunurken kendiliğinden kapanabilir. Ölçüm (2026-11-12): Sorgular
+  // sekmesinden Talep Gönder'e geçilip talep tipi ve türü yeniden seçilince
+  // hemen açılan liste yaklaşık 660 ms sonra kapanıyordu. Okuma o ana denk
+  // gelince liste ya boş okunuyor ("Sorgudaki hiçbir kurum Banka Seç
+  // listesinde bulunamadı") ya da "kayboldu" deniyordu. Daha kötüsü, liste
+  // bir sayfa okunduktan sonra kapanırsa okunmayan sayfalardaki bankalar
+  // sessizce "listede yok" diye atlanırdı. Bu yüzden okuma ancak liste baştan
+  // sona açık kalmış, her sayfası dolu gelmiş ve sayfa sayısı değişmemişse
+  // geçerlidir. Değilse liste yeniden açılıp baştan okunur.
+  const BANK_LIST_ATTEMPTS = 3;
 
-    // Önceki bir denemeden kalan süzgeç listeyi daraltır.
+  async function readBankTargets() {
+    let problem = '';
+
+    for (let attempt = 1; attempt <= BANK_LIST_ATTEMPTS; attempt++) {
+      if (attempt > 1) await sleep(1000);
+
+      const result = await readBankListOnce();
+      if (result.names) return [...result.names].map(name => ({ name, ...bankForms(name) }));
+      problem = result.problem;
+    }
+    fail(problem);
+  }
+
+  // Sayfalayıcının gösterdiği en büyük sayfa numarası. Çok sayfada araya
+  // "..." girse de son sayfa şeritte durur. Sayfalayıcı yoksa liste tek
+  // sayfadır.
+  function bankListPageCount(grid) {
+    const pager = grid && gridPager(grid);
+    if (!pager) return 1;
+
+    const numbers = [...pager.querySelectorAll('.dx-page')]
+      .map(el => Number(textOf(el)))
+      .filter(n => Number.isInteger(n) && n > 0);
+    return numbers.length > 0 ? Math.max(...numbers) : 1;
+  }
+
+  // goToPage gibi, ama liste kapanınca 15 sn beklemeden false döner.
+  async function openBankListPage(number) {
+    const label = String(number);
+    const grid = findBankSelectGrid();
+    if (!grid) return false;
+
+    const pager = gridPager(grid);
+    if (!pager) return number === 1;
+    if (textOf(pager.querySelector('.dx-page.dx-selection')) === label) return true;
+
+    const target = [...pager.querySelectorAll('.dx-page')]
+      .filter(isVisible)
+      .find(el => textOf(el) === label);
+    if (!target) return false;
+
+    await waitForLoaderGone();
+
+    const before = firstDataRow(grid);
+    target.click();
+
+    const settled = await waitFor(
+      () => !findBankSelectGrid() || rowsRedrawn(findBankSelectGrid, before, label),
+      15000
+    );
+    if (!settled || !findBankSelectGrid()) return false;
+
+    await waitForLoaderGone();
+    await sleep(600);
+    return !!findBankSelectGrid();
+  }
+
+  // Ekrandaki sayfanın adları. Liste kapalıysa null.
+  function bankListPageNames() {
+    const grid = findBankSelectGrid();
+    const colIndex = grid && getGridParts(grid)?.colIndex;
+    if (!colIndex) return null;
+
+    return visibleRows(grid).map(row => rowBankName(row, colIndex)).filter(Boolean);
+  }
+
+  // Listeyi bir kez baştan sona okur: { names } ya da { problem }.
+  async function readBankListOnce() {
+    if (!await ensureBankGridOpen()) return { problem: 'Banka Seç listesi açılmadı' };
+
+    // Önceki bir denemeden kalan süzgeç listeyi daraltır. Kutunun boşalması
+    // süzgecin kalktığını göstermez: DevExtreme onu gecikmeli uygular (ilk
+    // süzgeç ~3 sn, bkz. FILTER_BUDGET_MS). Ekrandaki satırların hepsi hâlâ
+    // eski anahtarı taşıyorsa liste süzülmüş demektir, sayfalayıcısı da
+    // süzülmüş listeninkidir. Bu yüzden satırlar değişene dek beklenir.
     const parts = getGridParts(findBankSelectGrid());
     if (parts && parts.filterInput.value !== '') {
+      const oldKey = parts.filterInput.value;
       clearCurrentFilter();
-      if (!await waitUntilGridReset(3000)) fail('Banka Seç listesi süzgeci temizlenemedi');
+
+      const cleared = await waitFor(() => {
+        const grid = findBankSelectGrid();
+        const now = grid && getGridParts(grid);
+        return !!now && now.filterInput.value === '' &&
+               visibleRows(grid).length > 0 &&
+               !filterCommitted(grid, now.colIndex, oldKey);
+      }, FILTER_BUDGET_MS);
+      if (!cleared) return { problem: 'Banka Seç listesi süzgeci temizlenemedi' };
     }
 
-    await goToPage(findBankSelectGrid, 1);
+    if (!await waitFor(() => bankListPageNames()?.length > 0, 5000)) {
+      return { problem: 'Banka Seç listesi boş geldi' };
+    }
 
+    // Satırlar sayfalayıcıdan önce çizilebilir. Sayfalayıcı henüz yokken
+    // liste tek sayfa sanılmasın diye kısa bir pay bırakılır. Sayfa sayısı
+    // okumanın sonunda yeniden karşılaştırılır.
+    await sleep(400);
+    const pageCount = bankListPageCount(findBankSelectGrid());
     const names = new Set();
 
-    do {
-      const grid = findBankSelectGrid();
-      const colIndex = grid && getGridParts(grid)?.colIndex;
-      if (!colIndex) fail('Banka Seç listesi kayboldu');
+    for (let page = 1; page <= pageCount; page++) {
+      if (!await openBankListPage(page)) return { problem: 'Banka Seç listesi kayboldu' };
 
-      for (const row of visibleRows(grid)) {
-        const name = rowBankName(row, colIndex);
-        if (name) names.add(name);
-      }
-    } while (await goToNextPage(findBankSelectGrid));
+      const pageNames = bankListPageNames();
+      if (!pageNames) return { problem: 'Banka Seç listesi kayboldu' };
+      if (pageNames.length === 0) return { problem: 'Banka Seç listesi boş geldi' };
 
-    await goToPage(findBankSelectGrid, 1);
+      for (const name of pageNames) names.add(name);
+    }
 
-    return [...names].map(name => ({ name, ...bankForms(name) }));
+    if (!findBankSelectGrid()) return { problem: 'Banka Seç listesi kayboldu' };
+    if (bankListPageCount(findBankSelectGrid()) !== pageCount) {
+      return { problem: 'Banka Seç listesi okunurken değişti' };
+    }
+
+    await openBankListPage(1);
+    return { names };
   }
 
   // Sorgu sonucundaki her adı tek bir unvana bağlar, aynı bankanın farklı
