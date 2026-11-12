@@ -4,9 +4,8 @@
 
 UYAP Avukat Portalı'nda seçili borçlu için EGM, icra dosyası, TAKBİS ve banka hacizlerini tek akışta hazırlayan bir **Chrome eklentisi**.
 
-Avukat Portalı'nda icra takibi yürütenler için yazıldı. Takibin kesinleştiği bir borçlu seçildiğinde çalışır. Seçtiğiniz haciz türlerinin
-sorgularını sırayla yapar, çıkan kayıtları haciz talebine ekler ve en sonda tek bir talep evrakı oluşturur. Talebi göndermez. Son kontrol,
-imza ve gönderme kullanıcıda kalır.
+Takibin kesinleştiği bir borçlu seçildiğinde çalışır. Seçtiğiniz haciz türlerinin sorgularını sırayla yapar, çıkan kayıtları haciz
+talebine ekler ve en sonda tek bir talep evrakı oluşturur. Talebi göndermez. Son kontrol, imza ve gönderme kullanıcıda kalır.
 
 Eklenti bağımsız bir geliştirici tarafından üretilmiş, yardımcı bir araçtır. UYAP veya Adalet Bakanlığı tarafından geliştirilmiş bir ürün
 değildir.
