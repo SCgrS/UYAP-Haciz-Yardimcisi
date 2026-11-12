@@ -50,8 +50,8 @@ Eklenti üyelik, e-posta ya da ücret istemez.
 - **Tek akış:** Seçilen haciz türlerini sırayla sorgular, çıkan kayıtları talebe ekler ve en sonda tek bir talep evrakı oluşturur.
 - **Talebi göndermez:** Son kontrol, imza ve gönderme kullanıcıda kalır.
 - **Sorgu hakkını korur:** Sonucu ekranda duran sorguyu yinelemez. Ücretli sorgu onayı varsayılan olarak kapalıdır.
-- **Banka eşleştirme:** Kesik ya da Türkçe harfsiz yazılmış kurum adlarını Banka Seç listesindeki tek bir bankaya bağlar, her bankayı bir
-  kez seçer.
+- **Banka eşleştirme:** Kesik, kısaltılmış ya da Türkçe harfsiz yazılmış kurum adlarını Banka Seç listesindeki tek bir bankaya bağlar,
+  her bankayı bir kez seçer.
 - **Sessizce atlamaz:** Hangi bölümün kaç kayıt eklediği, neyin neden eklenmediği canlı bir listede yazılır.
 - **Veri göndermez:** Ağ isteği, analitik ve telemetri yoktur.
 
@@ -81,7 +81,8 @@ Banka sorgusundan çıkan kurum adlarını **Banka Seç** listesindeki unvanlara
 tek seçer, tüm hesap türlerini işaretler, seçime göre **89/1 Haciz İhbarnamesi**'ni ya da **Haciz Müzekkeresi**'ni işaretleyip
 **Talep Ekle**'ye basar.
 
-Kurum borçlularda sonuç listesi uzun olur: Aynı banka her hesap için ayrı satırda, adlar kesik ya da Türkçe harfsiz yazılıdır. Eklenti
+Kurum borçlularda sonuç listesi uzun olur: Aynı banka her hesap için ayrı satırda, adlar kesik ya da Türkçe harfsiz yazılıdır. UYAP
+bazı bankaların adındaki "Türkiye"yi de kısaltır ("T. VAKIFLAR BANKASI T.A.O."). Eklenti
 listenin bütün sayfalarını okur, her adı Banka Seç listesindeki tek bir bankaya bağlar ve her bankayı bir kez seçer. Banka Seç listesinde
 karşılığı bulunmayan ya da birden çok bankaya uyan kurumu (örneğin PTT) işaretlemeden atlar, kalan bankalarla devam eder ve atladığı adları
 sonuç listesinde uyarı olarak yazar.
@@ -119,6 +120,8 @@ Ayarlar, eklenti simgesine basınca açılan penceredeki **Toplu Haciz** bölüm
 - Atladığı hiçbir şeyi sessizce atlamaz. Atlanan kurumlar adlarıyla, bölüm satırının altında uyarı olarak yazılır.
 - Sorgu sonucunu eksik okumaz. Okunan satır sayısı UYAP'ın yazdığı kayıt sayısını tutmazsa ya da çıkan kayıtların tamamı talebe
   eklenemezse o bölüm hata ile durur.
+- Banka Seç listesini eksik okumaz. Liste okunurken kapanırsa ya da bir sayfası boş gelirse liste baştan okunur, eksik listeyle banka
+  seçilmez.
 - Gönderilecek talebin doğruluğundan talebi gönderen sorumludur.
 
 ### Bilinen sınırlar
