@@ -86,6 +86,11 @@ listenin bütün sayfalarını okur, her adı Banka Seç listesindeki tek bir ba
 karşılığı bulunmayan ya da birden çok bankaya uyan kurumu (örneğin PTT) işaretlemeden atlar, kalan bankalarla devam eder ve atladığı adları
 sonuç listesinde uyarı olarak yazar.
 
+UYAP o an yavaş kaldığı için seçilemeyen bankayı birkaç saniye sonra, daha uzun bekleyerek iki kez daha dener. Yine seçilemezse talebi kalan
+bankalarla ekler ve o bankayı Banka Seç'teki adıyla "Seçilemediği için talebe eklenmedi" diye yazar. Talep eklendikten sonra talebin
+açıklamasındaki banka listesine bakar, orada görünmeyen bankayı da aynı satıra yazar. Böylece elle eklemeniz gereken bankayı aramadan
+görürsünüz.
+
 ### Canlı durum listesi
 
 - Hangi bölümün ne yaptığını (kaç kayıt eklendi, neden eklenmedi) canlı bir listede yazar. Bir bölüm takılırsa durmaz, sıradaki bölüme
@@ -115,8 +120,9 @@ Ayarlar, eklenti simgesine basınca açılan penceredeki **Toplu Haciz** bölüm
 - Ödeme türü seçmez, ödeme ekranını açmaz.
 - İki düğmeli hiçbir onay kutusuna kendiliğinden dokunmaz. Ücret kutusuna yalnız **Ücretli sorguyu onayla** seçeneğini açtıysanız basar.
 - Tek bir bankaya bağlayamadığı adı işaretlemez: Banka Seç listesinde karşılığı bulunmayan ya da birden çok bankaya uyan kurum
-  işaretlenmeden atlanır. Eşleşen ad kalmazsa banka bölümü hata ile biter.
-- Atladığı hiçbir şeyi sessizce atlamaz. Atlanan kurumlar adlarıyla, bölüm satırının altında uyarı olarak yazılır.
+  işaretlenmeden atlanır. Eşleşen ad kalmazsa ya da bankaların hiçbiri seçilemezse banka bölümü hata ile biter.
+- Atladığı hiçbir şeyi sessizce atlamaz. Atlanan kurumlar ve seçilemediği için talebe girmeyen bankalar adlarıyla, bölüm satırının altında
+  uyarı olarak yazılır.
 - Sorgu sonucunu eksik okumaz. Okunan satır sayısı UYAP'ın yazdığı kayıt sayısını tutmazsa ya da çıkan kayıtların tamamı talebe
   eklenemezse o bölüm hata ile durur.
 - Banka Seç listesini eksik okumaz. Liste okunurken kapanırsa ya da bir sayfası boş gelirse liste baştan okunur, eksik listeyle banka

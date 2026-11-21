@@ -4,7 +4,10 @@
 //   - düğme / sekme / seçenek etiketleri,
 //   - "No / Kurum" tablosundaki BANKA kurum adları (bütün sayfalar),
 //   - Banka Seç (bütün sayfalar) ve Hesap Seç listelerindeki satır adları,
-//   - sayfalayıcıdaki kayıt sayısı ve sayfa numaraları.
+//   - sayfalayıcıdaki kayıt sayısı ve sayfa numaraları,
+//   - Talep Gönder'de az önce eklenen banka talebinin açıklamasındaki YALNIZ
+//     "Banka Listesi" bölümü (talebe hangi bankaların girdiğini doğrulamak
+//     için).
 // Ayrıca sorgu sonucunda "... kaydı yok" cümlesinin çıkıp çıkmadığını anlamak
 // için sayfa metninde YALNIZ o cümle kalıbı aranır; eşleşen cümle dışında
 // hiçbir alan okunmaz, hiçbir yere yazılmaz.
@@ -82,7 +85,8 @@
   // BÖLÜM 1 - BANKA EŞLEŞTİRME ÇEKİRDEĞİ (v1'den alınmıştır)
   // Bu bölümün mantığı ve zamanlaması saha ölçümleriyle oturmuştur. 2.13'te
   // yalnız ad eşlemesi değişti: elle tutulan tablo yerine Banka Seç listesinin
-  // kendisine bakılıyor. Filtreleme, seçim ve bekleme süreleri aynıdır.
+  // kendisine bakılıyor. Filtreleme, seçim ve ilk denemedeki bekleme süreleri
+  // aynıdır. Yeniden denemede süreler uzar (bkz. stepSelectBanks).
   // =========================================================================
 
   // Saha ölçümü: ilk (soğuk) filtre işlemi 3040 ms'de henüz bitmemişti,
@@ -573,7 +577,9 @@
   }
 
   // expectedTarget, Banka Seç listesinden okunmuş TAM unvandır (bkz. matchBank).
-  async function selectOneBank(expectedTarget) {
+  // patience, kaçıncı denemede olunduğudur: Süzgeç ve seçim beklemeleri o kat
+  // uzar.
+  async function selectOneBank(expectedTarget, patience = 1) {
     const m = {};
     const done = ok => { m.ok = ok; return m; };
 
@@ -592,7 +598,7 @@
     m.reopenCount = 0;
 
     const row = await applyFilterAndWaitForExactRow(
-      searchKey, expectedTarget, FILTER_BUDGET_MS, m
+      searchKey, expectedTarget, FILTER_BUDGET_MS * patience, m
     );
     if (!row) return done(false);
 
@@ -605,7 +611,7 @@
       checkbox.click();
     }
 
-    const selected = await waitUntilSelected(expectedTarget, 1500);
+    const selected = await waitUntilSelected(expectedTarget, 1500 * patience);
     if (!selected) return done(false);
 
     // Seçimin kanıtı Banka Seç editor'ündeki tam canonical addır. Grid reset
@@ -1565,6 +1571,71 @@
     return { chosen, skipped };
   }
 
+  // --- Seçimin denetimi ve yeniden deneme ------------------------------------
+  //
+  // Bir bankanın seçimi süre dolduğu için tutmazsa (UYAP o an yavaş, sekme
+  // arka planda) banka bölümünün tamamı "Banka seçilemedi (k/n)" diye
+  // duruyor, talep hiç eklenmiyordu. Önceki bankalar Banka Seç kutusunda
+  // seçili kaldığı için kullanıcı hangilerinin eksik olduğunu sorgu sonucuyla
+  // tek tek karşılaştırarak buluyordu (kullanıcı geri bildirimi, 2026-11-21).
+  //
+  // Artık bankalar turlarla seçilir. Her turun sonunda liste kapatılır ve
+  // Banka Seç kutusunda duran adlara bakılır: Süresi dolan bir seçim sonradan
+  // da oturabilir. Seçilmemiş kalan bankalar bir sonraki turda, beklemeler
+  // uzatılarak yeniden denenir. Son turda da seçilemeyen banka atlanır, talep
+  // kalan bankalarla eklenir ve atlanan banka adıyla uyarıya düşer (bkz.
+  // bankaWarnings).
+  const SELECT_ROUNDS = 3;
+
+  // Bu çalıştırmada seçilecek unvanlar ve bunlardan talebe GİRMEYENLER.
+  // Banka bölümü sonradan takılsa da uyarı yazılabilsin diye akışın
+  // belleğinde durur.
+  let chosenBanks = [];
+  let unselectedBanks = [];
+
+  // parts: virgülle bölünmüş adlar. Unvanın kendisi virgül taşıyabilir, bu
+  // yüzden yan yana parçalar birleştirilerek de karşılaştırılır.
+  function namesInclude(parts, target) {
+    const expected = canonical(target);
+
+    for (let i = 0; i < parts.length; i++) {
+      for (let j = i; j < parts.length && j < i + 4; j++) {
+        if (canonical(parts.slice(i, j + 1).join(',')) === expected) return true;
+      }
+    }
+    return false;
+  }
+
+  function isBankSelected(target) {
+    const editor = findBankSelectEditor();
+    return !!editor && namesInclude(editor.input.value.split(','), target);
+  }
+
+  // Bir tur: Hedeflerin hepsi sırayla seçilmeye çalışılır, sonra liste
+  // kapatılır ve seçilmemiş kalanlar döner.
+  async function selectRound(targets, round) {
+    let done = 0;
+
+    for (const target of targets) {
+      done += 1;
+      send({
+        t: 'STEP',
+        label: round === 1
+          ? `Bankalar seçiliyor (${done}/${targets.length})`
+          : `Seçilemeyen bankalar yeniden deneniyor (${done}/${targets.length})`,
+        index: stepIndex,
+        total: stepTotal
+      });
+
+      await selectOneBank(target, round);
+      await sleep(120);
+    }
+
+    await closeBankGrid();
+    await sleep(600);
+    return targets.filter(target => !isBankSelected(target));
+  }
+
   async function stepSelectBanks() {
     const stored = await requestBanks();
     throwIfStopped();
@@ -1579,6 +1650,7 @@
       // Atlananlar bölüm yarıda kalsa da yazılabilsin diye akışın belleğinde
       // tutulur (bkz. bankaWarnings).
       skippedBanks = skipped;
+      chosenBanks = banks;
 
       // Hiçbir ad bağlanamadıysa işaretlenecek banka kalmaz; boş bir talep
       // hazırlamak yerine bölüm burada durur.
@@ -1586,28 +1658,97 @@
 
       stepIndex += 1;
 
-      let done = 0;
-      for (const target of banks) {
-        done += 1;
-        send({
-          t: 'STEP',
-          label: `Bankalar seçiliyor (${done}/${banks.length})`,
-          index: stepIndex,
-          total: stepTotal
-        });
-
-        const result = await selectOneBank(target);
-        if (!result.ok) fail(`Banka seçilemedi (${done}/${banks.length})`);
-
-        await sleep(120);
+      let pending = banks;
+      for (let round = 1; round <= SELECT_ROUNDS && pending.length > 0; round++) {
+        if (round > 1) await sleep(1000);
+        pending = await selectRound(pending, round);
       }
 
-      return banks.length;
+      unselectedBanks = pending;
+      if (pending.length === banks.length) fail('Bankaların hiçbiri seçilemedi');
     } finally {
       // Başarısızlıkta da açık kalan liste ekranı kapatılır.
       await closeBankGrid();
     }
   }
+
+  // Talep Ekle'den hemen önce Banka Seç kutusuna bir kez daha bakılır: Hesap
+  // türleri ve talep türü seçilirken form yeniden çizilirse seçim
+  // kaybolabilir. Kaybolan banka bir kez daha, uzun beklemeyle seçilir.
+  async function stepConfirmBanks() {
+    const lost = chosenBanks.filter(target =>
+      !unselectedBanks.includes(target) && !isBankSelected(target)
+    );
+
+    if (lost.length > 0) {
+      try {
+        unselectedBanks.push(...await selectRound(lost, SELECT_ROUNDS));
+      } finally {
+        await closeBankGrid();
+      }
+    }
+
+    if (unselectedBanks.length === chosenBanks.length) fail('Bankaların hiçbiri seçilemedi');
+  }
+
+  // Talep Gönder ekranındaki eklenen talepler tablosu (No, Talep Adı,
+  // Açıklama, Masraf Tutarı). Banka haczi talebinin açıklaması "Banka Listesi
+  // : AKBANK TÜRK ANONİM ŞİRKETİ, ... Hesap Listesi : ..." biçimindedir
+  // (ölçüm 2026-11-21). Talebe gerçekte hangi bankaların girdiğinin kanıtı bu
+  // listedir. Yeni talep tablonun sonuna eklenir.
+  const findTalepGrid = () =>
+    [...document.querySelectorAll('.dx-datagrid')]
+      .filter(isVisible)
+      .find(grid => {
+        const headers = [...grid.querySelectorAll('tr.dx-header-row [role="columnheader"]')]
+          .map(textOf);
+        return headers.includes('Talep Adı') && headers.includes('Açıklama');
+      }) || null;
+
+  function talepRowCount() {
+    const grid = findTalepGrid();
+    return grid ? grid.querySelectorAll('tr.dx-data-row').length : -1;
+  }
+
+  // Bankalar büyük harfle yazılır. Liste, sıradaki alanın "Hesap Listesi :"
+  // gibi küçük harf taşıyan başlığında biter.
+  const BANKA_LISTESI = /Banka Listesi\s*:\s*(.*?)(?=\s+[A-ZÇĞİÖŞÜ][a-zçğıöşü][^:,]*:|$)/;
+
+  // Son eklenen talebin Banka Listesi'ndeki adlar. Okunamazsa null.
+  function lastTalepBankList() {
+    const grid = findTalepGrid();
+    if (!grid) return null;
+
+    const header = [...grid.querySelectorAll('tr.dx-header-row [role="columnheader"]')]
+      .find(el => textOf(el) === 'Açıklama');
+    const colIndex = header?.getAttribute('aria-colindex');
+    if (!colIndex) return null;
+
+    const rows = [...grid.querySelectorAll('tr.dx-data-row')];
+    const text = textOf(rows[rows.length - 1]?.querySelector(`td[aria-colindex="${colIndex}"]`));
+    const match = text.match(BANKA_LISTESI);
+    return match ? match[1].split(',').map(name => name.trim()).filter(Boolean) : null;
+  }
+
+  // Talep eklendikten sonra seçili sayılan bankalar talebin Banka
+  // Listesi'yle karşılaştırılır, listede olmayan banka "eklenmedi" sayılır.
+  // Tablo ya da liste okunamazsa (UYAP biçimi değiştirdiyse) Banka Seç
+  // kutusundaki seçim esas kalır. Seçili bankaların HİÇBİRİ listede yoksa da
+  // öyle: Bu, talebin bankasız eklendiğini değil, listenin okunamadığını
+  // gösterir.
+  async function verifyTalepBanks(rowsBefore) {
+    if (rowsBefore < 0) return;
+    if (!await waitForSettled(() => talepRowCount() > rowsBefore, 4000)) return;
+
+    const listed = lastTalepBankList();
+    if (!listed) return;
+
+    const selected = chosenBanks.filter(target => !unselectedBanks.includes(target));
+    const missing = selected.filter(target => !namesInclude(listed, target));
+    if (missing.length < selected.length) unselectedBanks.push(...missing);
+  }
+
+  const addedBankCount = () => chosenBanks.length - unselectedBanks.length;
 
   // --- Hesap türleri, ihbarname, talep --------------------------------------
 
@@ -2181,11 +2322,18 @@
     send({ t: 'STAGE', key, name, state, note, warns });
 
   // Banka bölümünün uyarı satırları: YALNIZ o çalıştırmada gerçekten olan bir
-  // şey yazılır, atlanan kurumlar. Sonucun talep ile teyit edilmesi gerektiği
-  // her çalıştırmada aynı olduğu için bölüm satırına değil, popup'taki "Nasıl
-  // kullanılır?" bölümüne yazılıdır (bkz. popup.html).
+  // şey yazılır, talebe girmeyen bankalar ve atlanan kurumlar. Sonucun talep
+  // ile teyit edilmesi gerektiği her çalıştırmada aynı olduğu için bölüm
+  // satırına değil, popup'taki "Nasıl kullanılır?" bölümüne yazılıdır (bkz.
+  // popup.html).
   function bankaWarnings() {
     const warns = [];
+
+    // Banka Seç'teki unvanıyla yazılır: Kullanıcı elle seçerken listede aynı
+    // adı arar.
+    if (unselectedBanks.length > 0) {
+      warns.push('Seçilemediği için talebe eklenmedi: ' + unselectedBanks.join(', '));
+    }
 
     const missing = skippedBanks.filter(item => item.reason === 'yok');
     const ambiguous = skippedBanks.filter(item => item.reason === 'belirsiz');
@@ -2427,17 +2575,24 @@
         stage('banka', 'Banka', 'running', 'Sorgulanıyor');
         paidApproved = false;
         skippedBanks = [];
+        chosenBanks = [];
+        unselectedBanks = [];
 
         try {
           await stepQueryBanks(allowPaid);
           await stepOpenTalepForm();
-
-          const selected = await stepSelectBanks();
-
+          await stepSelectBanks();
           await stepSelectAccountTypes();
           await stepSelectBankaEvrak(bankaEvrak);
-          await stepAddTalep();
+          await stepConfirmBanks();
 
+          const rowsBefore = talepRowCount();
+          await stepAddTalep();
+          await verifyTalepBanks(rowsBefore);
+
+          // Talebe giren bankalar: Seçilemeyenler ve talebin Banka
+          // Listesi'nde görünmeyenler sayılmaz. Onlar adlarıyla uyarıya düşer.
+          const selected = addedBankCount();
           prepared += selected;
           counts.push(`Banka ${selected}`);
           stage('banka', 'Banka', 'done', withCost(
@@ -2530,6 +2685,8 @@
     stepIndex = 0;
     capturedBanks = [];
     skippedBanks = [];
+    chosenBanks = [];
+    unselectedBanks = [];
     paidApproved = false;
     sectionAdded = 0;
     documentRequested = false;
@@ -2552,6 +2709,8 @@
     } finally {
       capturedBanks = [];
       skippedBanks = [];
+      chosenBanks = [];
+      unselectedBanks = [];
       stopRequested = false;
       running = false;
     }
